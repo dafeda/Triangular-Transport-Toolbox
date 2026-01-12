@@ -5,8 +5,6 @@ if __name__ == '__main__':
     import scipy.stats
     import copy
     from triangular_transport_toolbox import transport_map
-    import time
-    import pickle
     import matplotlib.pyplot as plt
     
     # Import shared utilities
