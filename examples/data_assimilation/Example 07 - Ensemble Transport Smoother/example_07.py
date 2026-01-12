@@ -9,6 +9,12 @@ if __name__ == '__main__':
     import pickle
     import matplotlib.pyplot as plt
     
+    # Import shared utilities
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).parent.parent))
+    from utils import lorenz_dynamics, rk4
+    
     # Close all open figures
     plt.close("all")
     
@@ -17,64 +23,6 @@ if __name__ == '__main__':
     # to smoothing. Specifically, we consider a backward Ensemble Transport
     # Smoother, which is a nonlinear generalization of the Ensemble Rauch-Tung-
     # Striebel Smoother.    
-    
-    # =========================================================================
-    # Set up the Lorenz-63 dynamics
-    # =========================================================================
-    
-    # First, we must define the system dynamics and the time integration scheme
-    
-    # Lorenz-63 dynamics
-    def lorenz_dynamics(t, Z, beta=8/3, rho=28, sigma=10):
-        
-        if len(Z.shape) == 1: # Only one particle
-        
-            dZ1ds   = - sigma*Z[0] + sigma*Z[1]
-            dZ2ds   = - Z[0]*Z[2] + rho*Z[0] - Z[1]
-            dZ3ds   = Z[0]*Z[1] - beta*Z[2]
-            
-            dyn     = np.asarray([dZ1ds, dZ2ds, dZ3ds])
-            
-        else:
-            
-            dZ1ds   = - sigma*Z[...,0] + sigma*Z[...,1]
-            dZ2ds   = - Z[...,0]*Z[...,2] + rho*Z[...,0] - Z[...,1]
-            dZ3ds   = Z[...,0]*Z[...,1] - beta*Z[...,2]
-    
-            dyn     = np.column_stack((dZ1ds, dZ2ds, dZ3ds))
-    
-        return dyn
-    
-    # Fourth-order Runge-Kutta scheme
-    def rk4(Z,fun,t=0,dt=1,nt=1):#(x0, y0, x, h):
-        
-        """
-        Parameters
-            t       : initial time
-            Z       : initial states
-            fun     : function to be integrated
-            dt      : time step length
-            nt      : number of time steps
-        
-        """
-        
-        # Prepare array for use
-        if len(Z.shape) == 1: # We have only one particle, convert it to correct format
-            Z       = Z[np.newaxis,:]
-            
-        # Go through all time steps
-        for i in range(nt):
-            
-            # Calculate the RK4 values
-            k1  = fun(t + i*dt,           Z);
-            k2  = fun(t + i*dt + 0.5*dt,  Z + dt/2*k1);
-            k3  = fun(t + i*dt + 0.5*dt,  Z + dt/2*k2);
-            k4  = fun(t + i*dt + dt,      Z + dt*k3);
-        
-            # Update next value
-            Z   += dt/6*(k1 + 2*k2 + 2*k3 + k4)
-        
-        return Z
     
     # =========================================================================
     # Set up the exercise
