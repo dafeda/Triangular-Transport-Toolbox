@@ -10,7 +10,7 @@ import pickle
 import re
 
 # Load in the transport map class
-from transport_map import *
+from triangular_transport_toolbox import transport_map
 
 # Find the current working directory
 root_directory = os.path.dirname(os.path.realpath(__file__))
@@ -31,7 +31,7 @@ plt.close('all')
 # https://academic.udayton.edu/kissock/http/Weather/default.htm
 
 # Let's load in the data for Munich
-with open('DLMUNICH.txt') as text_file:
+with open(os.path.join(root_directory, 'DLMUNICH.txt')) as text_file:
     lines = text_file.read().splitlines()
 
 # Go through all lines, store the date and the daily average temperature
@@ -43,7 +43,7 @@ for line in lines:
     times       .append(chunks[2]+'-'+chunks[1]+'-'+chunks[0])
 
 # Now let's load the data for Moscow
-with open('RSMOSCOW.txt') as text_file:
+with open(os.path.join(root_directory, 'RSMOSCOW.txt')) as text_file:
     lines = text_file.read().splitlines()
 
 # Likewise go through every line of the text file. Only add a data point if we

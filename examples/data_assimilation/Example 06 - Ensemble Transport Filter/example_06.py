@@ -4,7 +4,7 @@ if __name__ == '__main__':
     import numpy as np
     import scipy.stats
     import copy
-    from transport_map import *
+    from triangular_transport_toolbox import transport_map
     import time
     import pickle
     import matplotlib.pyplot as plt

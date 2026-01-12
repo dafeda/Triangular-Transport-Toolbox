@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import copy
 import matplotlib
 import os
-from transport_map import *
+from triangular_transport_toolbox import transport_map
 
 # =============================================================================
 # Step 1: Train the map

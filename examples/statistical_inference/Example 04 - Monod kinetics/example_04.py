@@ -10,7 +10,7 @@ import pickle
 import re
 
 # Load in the transport map class
-from transport_map import *
+from triangular_transport_toolbox import transport_map
 
 # Find the current working directory
 root_directory = os.path.dirname(os.path.realpath(__file__))
