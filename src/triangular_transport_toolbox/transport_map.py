@@ -2,13 +2,10 @@
 Triangular transport map toolbox v1.0.0
 """
 
+import copy
 import numpy as np
 
 class transport_map():
-    
-    import numpy as np
-    import copy
-    
     def __init__(self, 
         X, 
         monotone                = None, 
@@ -166,11 +163,6 @@ class transport_map():
                 monotonicity = 'integrated rectifier'.
                 
         """
-        
-        
-        import numpy as np
-        import copy
-        
         # ---------------------------------------------------------------------
         # Load in pre-defined variables
         # ---------------------------------------------------------------------
@@ -404,10 +396,7 @@ class transport_map():
         # =====================================================================
 
         if self.adaptation_map_type == 'separable':
-            
-            import numpy as np
             import scipy.stats
-            import copy
             
             # Initiate monotone and nonmonotone terms
             nonmonotone = [[[]] for x in np.arange(self.D)]
@@ -721,9 +710,6 @@ class transport_map():
                 the transport map, where N is the number of samples and D is 
                 the number of dimensions
         """
-        
-        import copy
-        
         if len(X.shape) != 2:
             raise Exception('X should be a two-dimensional array of shape (N,D), N = number of samples, D = number of dimensions. Current shape of X is '+str(X.shape))
         
@@ -760,8 +746,6 @@ class transport_map():
         internal computations.
         """
         
-        import numpy as np
-        
         # In 'standard' mode, samples are standardized via their mean and 
         # marginal standard deviations
         if self.standardization.lower() == 'standard':
@@ -793,9 +777,6 @@ class transport_map():
         the samples provided. These matrices can be used to optimize the maps
         more quickly.
         """
-        
-        import copy
-        
         # Precalculate locations of any special terms
         self.determine_special_term_locations()
         
@@ -846,9 +827,6 @@ class transport_map():
                 samples the 'term' corresponds to. Used to clarify with respect
                 to what variable we take the derivative.
         """
-        
-        import copy
-        
         # First, check for input errors ---------------------------------------
         
         # Check if mode is valid
@@ -1271,9 +1249,6 @@ class transport_map():
                 samples the 'term' corresponds to. Used to clarify with respect
                 to what dimension we build this basis function
         """
-        
-        import numpy as np
-        import copy
         
         if k is None:
             
@@ -1863,9 +1838,6 @@ class transport_map():
         It constructs the functions' strings, then converts them into 
         functions.
         """
-    
-        import numpy as np
-        import copy
         
         self.der_fun_mon            = []
         self.der_fun_mon_strings    = []
@@ -2233,9 +2205,6 @@ class transport_map():
                 samples the 'term' corresponds to. Used to clarify with respect
                 to what dimension we build this basis function
         """
-        
-        import copy
-        
         def place_special_terms(self,dictionary):
             
             """
@@ -2400,10 +2369,6 @@ class transport_map():
                 optimize the transport map, where N is the number of samples 
                 and D is the number of dimensions.
         """
-        
-        import numpy as np
-        import copy
-        
         # If we have specified 
         if X is not None and self.standardize_samples:
             
@@ -2463,10 +2428,6 @@ class transport_map():
                 not depend on x_k. This vector is replaced from storage if it 
                 is not overwritten.
         """
-        
-        import numpy as np
-        import copy
-        
         # Load in values if required
         if x is None:
             
@@ -2592,9 +2553,6 @@ class transport_map():
                 target distribution, used to condition the lower D-E dimensions
                 during the inversion process.
         """
-        
-        import copy
-        
         # Make sure the user uses separable monotonicity
         assert self.monotonicity == "separable monotonicity", "evaluate_pushforward_density is currently only implemented for monotonicity = 'separable monotonicity'."
         
@@ -2656,8 +2614,6 @@ class transport_map():
                 where N is the number of samples and D is the number of 
                 dimensions.
         """
-        
-        import copy
         import scipy.stats
         
         # Make sure the user uses separable monotonicity
@@ -2724,10 +2680,6 @@ class transport_map():
                 optimizes all map component functions.
         
         """
-        
-        import numpy as np
-        import copy
-        
         # If we haven't specified which components should be optimized, then
         # we optimize all components
         if K is None:
@@ -2918,10 +2870,7 @@ class transport_map():
                 not be specified by the user, it only serves to provide 
                 information about the optimization progress.
         """
-        
-        import numpy as np
         from scipy.optimize import minimize
-        import copy
         
         # -----------------------------------------------------------------
         # Prepare task
@@ -3189,9 +3138,7 @@ class transport_map():
                 not be specified by the user, it only serves to provide 
                 information about the optimization progress.
         """
-        
         from scipy.optimize import minimize
-        import copy
         
         # -----------------------------------------------------------------
         # Prepare task
@@ -3316,9 +3263,6 @@ class transport_map():
                 [integer] : an integer specifying where the cutoff between the
                 nonmonotone and monotone coefficients in 'coeffs' is.
         """
-        
-        import numpy as np
-        import copy
         import scipy.special
         
         # Partition the coefficient vector, if necessary
@@ -3451,10 +3395,6 @@ class transport_map():
                 [integer] : an integer specifying where the cutoff between the
                 nonmonotone and monotone coefficients in 'coeffs' is.
         """
-        
-        import numpy as np
-        import copy
-        
         # Partition the coefficient vector, if necessary
         if coeffs is not None:
             # Separate the vector into nonmonotone and monotone coefficients
@@ -3659,10 +3599,6 @@ class transport_map():
                 target distribution, used to condition the lower D-E dimensions
                 during the inversion process.
         """
-        
-        import numpy as np
-        import copy
-        
         # Create a local copy of Z to prevent overwriting the input
         Z   = copy.copy(Z)
         
@@ -3831,9 +3767,6 @@ class transport_map():
                 algorithm should the root not lie within.                
                 
         """
-        
-        import numpy as np
-        import copy
         import pickle
         
         # Extract number of particles
@@ -4022,9 +3955,6 @@ class transport_map():
                 algorithm should the root not lie within.                
                 
         """
-        
-        import numpy as np
-        import copy
         from scipy.interpolate import interp1d
         
         # Create a local copy
@@ -4157,10 +4087,6 @@ class transport_map():
                 (False).
                 
         """
-        
-        import numpy as np
-        import copy
-        
         # =========================================================================
         # Here the actual magic starts
         # =========================================================================
@@ -4364,9 +4290,6 @@ class transport_map():
         return result
     
     def projectedNewton(self, x0, fun, args = None, method = 'trueHessian', rtol_Jdef = 1E-6, rtol_gdef = 1E-6, itmaxdef = 30, epsilon = 0.01):
-        
-        import copy
-        import numpy as np
         import scipy
         
         def Armijo(xk, gk, pk, Jk, Ik, fun, args = None, itmax = 15, sigma = 1E-4, beta = 2):
@@ -4379,9 +4302,6 @@ class transport_map():
             J       : objective function
             Ik      : set of locally optimal coordinates on the boundary
             """
-            
-            import numpy as np
-            
             # Iteration counter
             it  = 0
             
@@ -4424,9 +4344,6 @@ class transport_map():
             return alpha
             
         def projectGradient(xk,gk):
-            
-            import numpy as np
-            
             Pgk     = gk
             Pgk[np.where(np.logical_and(xk == 0, gk >= 0))] = 0
             
@@ -4576,8 +4493,6 @@ class transport_map():
         This function adapts a map with cross-terms.
         
         """
-        
-        import copy
         from scipy.optimize import minimize
             
         def cell_to_term(cell):
