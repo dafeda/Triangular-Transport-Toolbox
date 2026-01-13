@@ -853,15 +853,15 @@ class transport_map():
         
         # Check if mode is valid
         if mode not in ['standard','derivative']:
-            raise ValueError("Mode must be either 'standard' or 'derivative'. Unrecognized mode: "+str(mode))
+            raise ValueError(f"Mode must be either 'standard' or 'derivative'. Unrecognized mode: {mode}")
                 
         # If derivative, check if k is specified
         if mode == 'derivative' and k is None:
-            raise ValueError("If mode == 'derivative', specify an integer for k to inform with regards to which variable we take the derivative. Currently specified: k = "+str(k))
+            raise ValueError(f"If mode == 'derivative', specify an integer for k to inform with regards to which variable we take the derivative. Currently specified: k = {k}")
 
         # If derivative, check if k is an integer
         if mode == 'derivative' and type(k) is not int:
-            raise ValueError("If mode == 'derivative', specify an integer for k to inform with regards to which variable we take the derivative. Currently specified: k = "+str(k))
+            raise ValueError(f"If mode == 'derivative', specify an integer for k to inform with regards to which variable we take the derivative. Currently specified: k = {k}")
 
         # Initiate the modifier log -------------------------------------------
 
@@ -921,7 +921,7 @@ class transport_map():
                     # https://www.wolframalpha.com/input/?i=%28%28x+-+%5Cmu%29*%281-erf%28%28x+-+%5Cmu%29%2F%28sqrt%282%29*%5Csigma%29%29%29+-+%5Csigma*sqrt%282%2F%5Cpi%29*exp%28-%28%28x+-+%5Cmu%29%2F%28sqrt%282%29*%5Csigma%29%29%5E2%29%29%2F2
                     
                     # Construct the string
-                    string      = "((__x__[...,"+i+"] - __mu__)*(1-scipy.special.erf((__x__[...,"+i+"] - __mu__)/(np.sqrt(2)*__scale__))) - __scale__*np.sqrt(2/np.pi)*np.exp(-((__x__[...,"+i+"] - __mu__)/(np.sqrt(2)*__scale__))**2))/2"
+                    string      = f"((__x__[...,{i}] - __mu__)*(1-scipy.special.erf((__x__[...,{i}] - __mu__)/(np.sqrt(2)*__scale__))) - __scale__*np.sqrt(2/np.pi)*np.exp(-((__x__[...,{i}] - __mu__)/(np.sqrt(2)*__scale__))**2))/2"
                     
                 elif mode == 'derivative':
                     
@@ -930,7 +930,7 @@ class transport_map():
                     # Construct the string
                     if int(i) == k:
                         
-                        string      = "(1 - scipy.special.erf((__x__[...,"+i+"] - __mu__)/(np.sqrt(2)*__scale__)))/2"
+                        string      = f"(1 - scipy.special.erf((__x__[...,{i}] - __mu__)/(np.sqrt(2)*__scale__)))/2"
                         
                     else:
                         
@@ -947,7 +947,7 @@ class transport_map():
                     # https://www.wolframalpha.com/input/?i=%28%28x+-+%5Cmu%29*%281%2Berf%28%28x+-+%5Cmu%29%2F%28sqrt%282%29*%5Csigma%29%29%29+%2B+%5Csigma*sqrt%282%2F%5Cpi%29*exp%28-%28%28x+-+%5Cmu%29%2F%28sqrt%282%29*%5Csigma%29%29%5E2%29%29%2F2
                     
                     # Construct the string
-                    string      = "((__x__[...,"+i+"] - __mu__)*(1+scipy.special.erf((__x__[...,"+i+"] - __mu__)/(np.sqrt(2)*__scale__))) + __scale__*np.sqrt(2/np.pi)*np.exp(-((__x__[...,"+i+"] - __mu__)/(np.sqrt(2)*__scale__))**2))/2"
+                    string      = f"((__x__[...,{i}] - __mu__)*(1+scipy.special.erf((__x__[...,{i}] - __mu__)/(np.sqrt(2)*__scale__))) + __scale__*np.sqrt(2/np.pi)*np.exp(-((__x__[...,{i}] - __mu__)/(np.sqrt(2)*__scale__))**2))/2"
                     
                 elif mode == 'derivative':
                     
@@ -956,7 +956,7 @@ class transport_map():
                     # Construct the string
                     if int(i) == k:
                     
-                        string      = "(1 + scipy.special.erf((__x__[...,"+i+"] - __mu__)/(np.sqrt(2)*__scale__)))/2"
+                        string      = f"(1 + scipy.special.erf((__x__[...,{i}] - __mu__)/(np.sqrt(2)*__scale__)))/2"
                     
                     else:
                         
@@ -973,7 +973,7 @@ class transport_map():
                     # https://www.wolframalpha.com/input/?i=1%2F%28sqrt%282*%5Cpi%29*%5Csigma%29*exp%28-%28x+-+%5Cmu%29**2%2F%282*%5Csigma%5E2%29%29
                     
                     # Construct the string
-                    string      = "np.exp(-((__x__[...,"+i+"] - __mu__)/__scale__)**2/2)/(__scale__*np.sqrt(2*np.pi))"
+                    string      = f"np.exp(-((__x__[...,{i}] - __mu__)/__scale__)**2/2)/(__scale__*np.sqrt(2*np.pi))"
                     
                 elif mode == 'derivative':
                     
@@ -982,7 +982,7 @@ class transport_map():
                     # Construct the string
                     if int(i) == k:
                         
-                        string      = "-(__x__[...,"+i+"] - __mu__)/(np.sqrt(2*np.pi)*__scale__**3)*np.exp(-((__x__[...,"+i+"]-__mu__)/__scale__)**2/2)"
+                        string      = f"-(__x__[...,{i}] - __mu__)/(np.sqrt(2*np.pi)*__scale__**3)*np.exp(-((__x__[...,{i}]-__mu__)/__scale__)**2/2)"
                         
                     else:
                         
@@ -999,7 +999,7 @@ class transport_map():
                     # https://www.wolframalpha.com/input/?i=%281+%2B+erf%28%28x+-+%5Cmu%29%2F%28sqrt%282%29*%5Csigma%29%29%29%2F2
                     
                     # Construct the string
-                    string      = "(1 + scipy.special.erf((__x__[...,"+i+"] - __mu__)/(np.sqrt(2)*__scale__)))/2"
+                    string      = f"(1 + scipy.special.erf((__x__[...,{i}] - __mu__)/(np.sqrt(2)*__scale__)))/2"
                     
     
                 elif mode == 'derivative':
@@ -1009,7 +1009,7 @@ class transport_map():
                     # Construct the string
                     if int(i) == k:
                         
-                        string      = "1/(np.sqrt(2*np.pi)*__scale__)*np.exp(-(__x__[...,"+i+"] - __mu__)**2/(2*__scale__**2))"
+                        string      = f"1/(np.sqrt(2*np.pi)*__scale__)*np.exp(-(__x__[...,{i}] - __mu__)**2/(2*__scale__**2))"
                     
                     else:
                         
@@ -1021,9 +1021,7 @@ class transport_map():
                 
             else:
                 
-                raise ValueError("Special term '"+str(STtype)+"' not "+\
-                    "understood. Currently, only LET, RET, iRBF, and RBF "+\
-                    "are implemented.")
+                raise ValueError(f"Special term '{STtype}' not understood. Currently, only LET, RET, iRBF, and RBF are implemented.")
             
             
         # =====================================================================
@@ -1115,7 +1113,7 @@ class transport_map():
                 if mode == 'standard' or (mode == 'derivative' and ui[i] != k):
                     
                     # Create a variable key
-                    key     = "P_"+str(ui[i])+"_O_"+str(ct[i])
+                    key     = f"P_{ui[i]}_O_{ct[i]}"
                     if hermite_function_modifier:
                         key     += "_HF"
                     if linearize:
@@ -1141,13 +1139,13 @@ class transport_map():
                     
                     # Add variable --------------------------------------------
                     
-                    var         += "(__x__[...,"+str(ui[i])+"])"
+                    var         += f"(__x__[...,{ui[i]}])"
                     
                     # Add Hermite function ------------------------------------
                     
                     if hermite_function_modifier:
                     
-                        var         += "*np.exp(-__x__[...,"+str(ui[i])+"]**2/4)"
+                        var         += f"*np.exp(-__x__[...,{ui[i]}]**2/4)"
                         
                     # Save the variable ---------------------------------------
                     if key not in list(modifier_log["variables"].keys()):
@@ -1166,10 +1164,10 @@ class transport_map():
                 elif mode == 'derivative':
                     
                     # Create a variable key for the standard polynomial
-                    key     = "P_"+str(ui[i])+"_O_"+str(ct[i])
+                    key     = f"P_{ui[i]}_O_{ct[i]}"
                     
                     # Create a variable key for its derivative
-                    keyder  = "P_"+str(ui[i])+"_O_"+str(ct[i])+"_DER"
+                    keyder  = f"P_{ui[i]}_O_{ct[i]}_DER"
                     
                     
                     # Set up function -----------------------------------------
@@ -1195,7 +1193,7 @@ class transport_map():
                     
                     # Add variable --------------------------------------------
                 
-                    varder      += "(__x__[...,"+str(ui[i])+"])"
+                    varder      += f"(__x__[...,{ui[i]}])"
                     
                     # Save the variable ---------------------------------------
                     if keyder not in list(modifier_log["variables"].keys()):
@@ -1234,7 +1232,7 @@ class transport_map():
                         
                         # Add variable ----------------------------------------
                     
-                        varbase     += "(__x__[...,"+str(ui[i])+"])"
+                        varbase     += f"(__x__[...,{ui[i]}])"
                         
                         # Save the variable -----------------------------------
                         if key not in list(modifier_log["variables"].keys()):
@@ -1242,7 +1240,7 @@ class transport_map():
                         
                         # Now we can construct the actual derivative ----------
                         
-                        string      = "-1/2*np.exp(-__x__[...,"+str(ui[i])+"]**2/4)*(__x__[...,"+str(ui[i])+"]*"+key+" - 2*"+keyder+")"
+                        string      = f"-1/2*np.exp(-__x__[...,{ui[i]}]**2/4)*(__x__[...,{ui[i]}]*{key} - 2*{keyder})"
                     
                     # Add a multiplier, in case there are more terms ----------
                     string      += " * "
