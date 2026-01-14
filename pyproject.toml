@@ -1,0 +1,23 @@
+[project]
+name = "triangular-transport-toolbox"
+version = "1.0.0"
+description = "Triangular transport map toolbox for probabilistic modeling"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.8"
+dependencies = [
+    "numpy",
+    "scipy",
+]
+
+[project.optional-dependencies]
+examples = [
+    "matplotlib",
+]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]

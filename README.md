@@ -2,13 +2,43 @@
 
 <img align="left" src="https://github.com/MaxRamgraber/Triangular-Transport-Toolbox/blob/main/figures/spiral_animated.gif" height="300px">
 
-This repository contains the code for my triangular transport implementation. To use it in your own code, simply download the file `transport_map.py`, copy it into your working directory, import the class `transport_map` into your Python code with the line `from transport_map import *`. That's it!
+This repository contains the code for my triangular transport implementation.
 
-The practical use and capabilities of this toolbox are illustrated in a number of example files:
+## Installation
 
- - **Examples A - spiral distribution** illustrates the basic use of the map, from the parameterization of a transport map object to its use for forward mapping, inverse mapping, and conditional sampling.
- - **Examples B - statistical inference** builds on previous established basics to illustrate the use of transport methods for statistical inference. The first example examines statistical dependencies between temperatures in two cities, the second demonstrates Bayesian parameter inference for Monod kinetics. A third example evaluates the pushforward and pullback densities, the map's approximation to the pdf for the reference and target distributions, respectively.
- - **Examples C - data assimilation** demonstrates the use of transport maps for Bayesian filtering and smoothing, using the chaotic Lorenz-63 system. These examples also introduce the use of map regularization, the possibility of separation of the map update, and the exploitation of conditional independence.
+Clone the repository and install with [uv](https://docs.astral.sh/uv/):
+
+```bash
+git clone https://github.com/MaxRamgraber/Triangular-Transport-Toolbox.git
+cd Triangular-Transport-Toolbox
+uv sync
+```
+
+Then import the class in your Python code:
+
+```python
+from triangular_transport_toolbox import transport_map
+```
+
+## Examples
+
+The practical use and capabilities of this toolbox are illustrated in example files located in the `examples/` directory:
+
+ - **examples/spiral_distribution/** - illustrates the basic use of the map, from the parameterization of a transport map object to its use for forward mapping, inverse mapping, and conditional sampling.
+ - **examples/statistical_inference/** - builds on previously established basics to illustrate the use of transport methods for statistical inference. The first example examines statistical dependencies between temperatures in two cities, the second demonstrates Bayesian parameter inference for Monod kinetics. A third example evaluates the pushforward and pullback densities, the map's approximation to the pdf for the reference and target distributions, respectively.
+ - **examples/data_assimilation/** - demonstrates the use of transport maps for Bayesian filtering and smoothing, using the chaotic Lorenz-63 system. These examples also introduce the use of map regularization, the possibility of separation of the map update, and the exploitation of conditional independence.
+
+To run the examples, first install with the examples extras:
+
+```bash
+uv sync --extra examples
+```
+
+Then run an example:
+
+```bash
+uv run python examples/spiral_distribution/Example\ 01\ -\ full\ map/example_01.py
+```
 
 ---
 

@@ -9,7 +9,7 @@ import os
 import pickle
 
 # Load in the transport map class
-from transport_map import *
+from triangular_transport_toolbox import transport_map
 
 # Find the current working directory
 root_directory = os.path.dirname(os.path.realpath(__file__))
@@ -217,14 +217,14 @@ if 'dict_coeffs_order='+str(maxorder)+'.p' not in os.listdir(root_directory):
         'coeffs_nonmon' : tm.coeffs_nonmon}
     
     # Save the dictionary
-    pickle.dump(dict_coeffs,open('dict_coeffs_order='+str(maxorder)+'.p','wb'))
+    pickle.dump(dict_coeffs,open(os.path.join(root_directory, 'dict_coeffs_order='+str(maxorder)+'.p'),'wb'))
     
 else:
     
     print('Pre-optimized coefficients found. Extracting...')
     
     # Load the previous coefficients
-    dict_coeffs = pickle.load(open('dict_coeffs_order='+str(maxorder)+'.p','rb'))
+    dict_coeffs = pickle.load(open(os.path.join(root_directory, 'dict_coeffs_order='+str(maxorder)+'.p'),'rb'))
     
     # Write the coefficients into the map object without optimization
     tm.coeffs_mon       = copy.copy(dict_coeffs['coeffs_mon'])
