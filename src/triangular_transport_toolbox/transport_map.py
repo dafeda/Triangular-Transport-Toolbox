@@ -2943,25 +2943,24 @@ class transport_map:
                     + np.inner(coeffs_mon, b)
                 )
 
-                if all_outputs:
-                    # -------------------------------------------------------------
-                    # Determine Jacobian
-                    # -------------------------------------------------------------
-
-                    dPsi_dS = self.der_Psi_mon[k] / dS
-
-                    grad = Ax[:, 0] - np.sum(dPsi_dS, axis=0) / N + b
-
-                    # -------------------------------------------------------------
-                    # Determine Hessian
-                    # -------------------------------------------------------------
-
-                    hess = A + np.dot(dPsi_dS.T, dPsi_dS) / N
-
-                    return objective, grad, hess
-
-                else:
+                if not all_outputs:
                     return objective
+
+                # -------------------------------------------------------------
+                # Determine Jacobian
+                # -------------------------------------------------------------
+
+                dPsi_dS = self.der_Psi_mon[k] / dS
+
+                grad = Ax[:, 0] - np.sum(dPsi_dS, axis=0) / N + b
+
+                # -------------------------------------------------------------
+                # Determine Hessian
+                # -------------------------------------------------------------
+
+                hess = A + np.dot(dPsi_dS.T, dPsi_dS) / N
+
+                return objective, grad, hess
 
         # If we regularize
         elif self.regularization.lower() == "l2":
@@ -3014,25 +3013,24 @@ class transport_map:
                     + np.inner(coeffs_mon, b)
                 )
 
-                if all_outputs:
-                    # -------------------------------------------------------------
-                    # Determine Jacobian
-                    # -------------------------------------------------------------
-
-                    dPsi_dS = self.der_Psi_mon[k] / dS
-
-                    grad = Ax[:, 0] - np.sum(dPsi_dS, axis=0) / N + b
-
-                    # -------------------------------------------------------------
-                    # Determine Hessian
-                    # -------------------------------------------------------------
-
-                    hess = A + np.dot(dPsi_dS.T, dPsi_dS) / N
-
-                    return objective, grad, hess
-
-                else:
+                if not all_outputs:
                     return objective
+
+                # -------------------------------------------------------------
+                # Determine Jacobian
+                # -------------------------------------------------------------
+
+                dPsi_dS = self.der_Psi_mon[k] / dS
+
+                grad = Ax[:, 0] - np.sum(dPsi_dS, axis=0) / N + b
+
+                # -------------------------------------------------------------
+                # Determine Hessian
+                # -------------------------------------------------------------
+
+                hess = A + np.dot(dPsi_dS.T, dPsi_dS) / N
+
+                return objective, grad, hess
 
         # ---------------------------------------------------------------------
         # Call the optimization routine
