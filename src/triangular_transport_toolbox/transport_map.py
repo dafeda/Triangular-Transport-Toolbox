@@ -84,8 +84,8 @@ class transport_map:
                 quantiles ('quantiles').
 
             workers - [default = 1]
-                [integer] : number of workers for parallel optimization. If set
-                to 1, parallelized optimization is inactive.
+                [integer] : DEPRECATED. Multiprocessing support has been
+                temporarily removed for refactoring. This parameter is ignored.
 
             ST_scale_factor - [default = 1.0]
                 [float] : a float which scales the width of special terms used
@@ -175,8 +175,9 @@ class transport_map:
         self.monotone = copy.deepcopy(monotone)
         self.nonmonotone = copy.deepcopy(nonmonotone)
 
-        # How many workers for optimization?
-        self.workers = workers
+        # Multiprocessing has been temporarily removed for refactoring
+        # The workers parameter is kept for backwards compatibility but ignored
+        self.workers = 1  # Force single-threaded execution
 
         # Specification for the rectifiers, used when monotonicity is set to
         # 'integrated rectifier'.
@@ -2839,193 +2840,59 @@ class transport_map:
         if K is None:
             K = np.arange(self.D)
 
-        # With only one worker, don't parallelize. This is often cheaper due to
-        # computational overhead.
-        if self.workers == 1:
-            # The standard optimization pathway, most flexibility
-            if self.monotonicity == "integrated rectifier":
-                # Go through all map components
-                for k in K:
-                    # Optimize this map component
-                    results = self.worker_task(k=k, task_supervisor=None)
-
-                    # Print optimziation progress
-                    if self.verbose:
-                        string = "\r" + "Progress: |"
-                        string += (k + 1) * "█"
-                        string += (len(K) - k - 1) * " "
-                        string += "|"
-                        print(string, end="\r")
-
-                    # Extract and store the optimized coefficients
-                    self.coeffs_nonmon[k] = copy.deepcopy(results[0])
-                    self.coeffs_mon[k] = copy.deepcopy(results[1])
-
-            # A faster, albeit less flexible optimization pathway
-            elif self.monotonicity == "separable monotonicity":
-                # Go through all map components
-                for k in K:
-                    # Optimize this map component
-                    results = self.worker_task_monotone(k=k, task_supervisor=None)
-
-                    # Print optimziation progress
-                    if self.verbose:
-                        string = "\r" + "Progress: |"
-                        string += (k + 1) * "█"
-                        string += (len(K) - k - 1) * " "
-                        string += "|"
-                        print(string, end="\r")
-
-                    # Extract and store the optimized coefficients
-                    self.coeffs_nonmon[k] = copy.deepcopy(results[0])
-                    self.coeffs_mon[k] = copy.deepcopy(results[1])
-
-        # If we have more than one worker, parallelize. Use with caution.
-        elif self.workers > 1:
-            from itertools import repeat
-            from multiprocessing import Manager, Pool
-
-            # ---------------------------------------------------------------------
-            # Prepare parallelization
-            # ---------------------------------------------------------------------
-
-            # Create the task supervisor
-            manager = Manager()
-            task_supervisor = manager.list([0] * len(K))
-
-            # ---------------------------------------------------------------------
-            # Start parallel tasks
-            # ---------------------------------------------------------------------
-
-            if self.monotonicity == "integrated rectifier":
-                # For parallelization, Python seemingly cannot share functions we have
-                # dynamically assembled between processes. As a consequence, we must
-                # delete them, then re-create them inside the processes
-                del self.fun_mon, self.fun_nonmon
-
-                # Start the worker
-                # We flip the order of the tasks because components farther down in the
-                # transport map take longer to computer; it is computationally useful
-                # to tackle these tasks first, so we don't leave the longest task last
-                p = Pool(processes=self.workers)
-                results = p.starmap(
-                    func=self.worker_task,
-                    iterable=zip(np.flip(K), repeat(task_supervisor)),
-                )
-                p.close()
-                p.join()
-
-            elif self.monotonicity == "separable monotonicity":
-                # For parallelization, Python seemingly cannot share functions we have
-                # dynamically assembled between processes. As a consequence, we must
-                # delete them, then re-create them inside the processes
-                del self.fun_mon, self.fun_nonmon, self.der_fun_mon
-
-                # Start the worker
-                # We flip the order of the tasks because components farther down in the
-                # transport map take longer to computer; it is computationally useful
-                # to tackle these tasks first, so we don't leave the longest task last
-                p = Pool(processes=self.workers)
-                results = p.starmap(
-                    func=self.worker_task_monotone,
-                    iterable=zip(np.flip(K), repeat(task_supervisor)),
-                )
-                p.close()
-                p.join()
-
-            # ---------------------------------------------------------------------
-            # Post-process parallel task
-            # ---------------------------------------------------------------------
-
-            if self.verbose:
-                # Make final update to the task supervisor
-                string = "\r" + "Progress: |"
-                for i in range(len(task_supervisor)):
-                    if task_supervisor[i] == 1:  # Successful task
-                        string += "█"
-                    elif task_supervisor[i] == -1:  # (Partially) failed task
-                        string += "X"
-                    elif task_supervisor[i] == 2:  # Successful task upon restart
-                        string += "R"
-                    else:
-                        string += " "  # Unfinished task (should not occur)
-                string += "|"
-                print(string)
-
-            # Reverse the results back into proper order
-            results.reverse()
-
-            # Go through all results and save the coefficients
+        # The standard optimization pathway, most flexibility
+        if self.monotonicity == "integrated rectifier":
+            # Go through all map components
             for k in K:
-                # Save the coefficients
-                self.coeffs_nonmon[k] = copy.deepcopy(results[k][0])
-                self.coeffs_mon[k] = copy.deepcopy(results[k][1])
+                # Optimize this map component
+                results = self.worker_task(k=k)
 
-        # Restore the functions we previously deleted
-        self.fun_mon = []
-        self.fun_nonmon = []
-        if self.monotonicity == "separable monotonicity":
-            self.der_fun_mon = []
+                # Print optimization progress
+                if self.verbose:
+                    string = "\r" + "Progress: |"
+                    string += (k + 1) * "█"
+                    string += (len(K) - k - 1) * " "
+                    string += "|"
+                    print(string, end="\r")
 
-        for k in range(self.D):
-            # Create the function
-            funstring = "fun_mon_" + str(k)
-            exec(self.fun_mon_strings[k].replace("fun", funstring), globals())
-            exec("self.fun_mon.append(copy.deepcopy(" + funstring + "))")
+                # Extract and store the optimized coefficients
+                self.coeffs_nonmon[k] = copy.deepcopy(results[0])
+                self.coeffs_mon[k] = copy.deepcopy(results[1])
 
-            # Create the function
-            funstring = "fun_nonmon_" + str(k)
-            exec(self.fun_nonmon_strings[k].replace("fun", funstring), globals())
-            exec("self.fun_nonmon.append(copy.deepcopy(" + funstring + "))")
+        # A faster, albeit less flexible optimization pathway
+        elif self.monotonicity == "separable monotonicity":
+            # Go through all map components
+            for k in K:
+                # Optimize this map component
+                results = self.worker_task_monotone(k=k)
 
-            if self.monotonicity == "separable monotonicity":
-                # Create the function
-                funstring = "der_fun_mon_" + str(k)
-                exec(self.der_fun_mon_strings[k].replace("fun", funstring), globals())
-                exec("self.der_fun_mon.append(copy.deepcopy(" + funstring + "))")
+                # Print optimization progress
+                if self.verbose:
+                    string = "\r" + "Progress: |"
+                    string += (k + 1) * "█"
+                    string += (len(K) - k - 1) * " "
+                    string += "|"
+                    print(string, end="\r")
+
+                # Extract and store the optimized coefficients
+                self.coeffs_nonmon[k] = copy.deepcopy(results[0])
+                self.coeffs_mon[k] = copy.deepcopy(results[1])
 
         return
 
-    def worker_task_monotone(self, k, task_supervisor):
+    def worker_task_monotone(self, k):
         """
         This function provides the optimization task for the k-th map component
-        function to a worker (if parallelization is used), or applies it in
-        sequence (if no parallelization is used). This specific function only
-        becomes active if monotonicity = 'separable monotonicity'.
+        function. This specific function only becomes active if
+        monotonicity = 'separable monotonicity'.
 
         Variables:
 
             k
                 [integer] : an integer variable defining what map component
                 is being evaluated. Corresponds to a dimension of sample space.
-
-            task supervisor
-                [list] : a shared list which informs the main process how many
-                optimization tasks have already been computed. This list should
-                not be specified by the user, it only serves to provide
-                information about the optimization progress.
         """
         from scipy.optimize import minimize
-
-        # -----------------------------------------------------------------
-        # Prepare task
-        # -----------------------------------------------------------------
-
-        if task_supervisor is not None and self.verbose:
-            # Print multiprocessing progress
-            string = "\r" + "Progress: |"
-            for i in range(len(task_supervisor)):
-                if task_supervisor[i] == 1:
-                    string += "█"
-                elif task_supervisor[i] == -1:
-                    string += "X"
-                elif task_supervisor[i] == 2:
-                    string += "R"
-                else:
-                    string += " "
-            string += "|"
-            if self.workers == 1:
-                print(string, end="\r")
 
         # Create local copies of the nonmonotone and monotone basis function's
         # coefficients.
@@ -3200,30 +3067,6 @@ class transport_map:
         coeffs_mon = opt.x
 
         # ---------------------------------------------------------------------
-        # Post-process the optimization results
-        # ---------------------------------------------------------------------
-
-        # Update the task_supervisor and print the update
-        if task_supervisor is not None and self.verbose:
-            # If optimization was a success, mark it as such
-            task_supervisor[k] = 1
-
-            # Print multiprocessing progress
-            string = "\r" + "Progress: |"
-            for i in range(len(task_supervisor)):
-                if task_supervisor[i] == 1:
-                    string += "█"
-                elif task_supervisor[i] == -1:
-                    string += "X"
-                elif task_supervisor[i] == 2:
-                    string += "R"
-                else:
-                    string += " "
-            string += "|"
-            if self.workers == 1:
-                print(string, end="\r")
-
-        # ---------------------------------------------------------------------
         # With the monotone coefficients found, calculate the nonmonotone coeffs
         # ---------------------------------------------------------------------
 
@@ -3251,45 +3094,19 @@ class transport_map:
         # Return both optimized coefficients
         return (coeffs_nonmon, coeffs_mon)
 
-    def worker_task(self, k, task_supervisor):
+    def worker_task(self, k):
         """
         This function provides the optimization task for the k-th map component
-        function to a worker (if parallelization is used), or applies it in
-        sequence (if no parallelization is used). This specific function only
-        becomes active if monotonicity = 'integrated rectifier'.
+        function. This specific function only becomes active if
+        monotonicity = 'integrated rectifier'.
 
         Variables:
 
             k
                 [integer] : an integer variable defining what map component
                 is being evaluated. Corresponds to a dimension of sample space.
-
-            task supervisor
-                [list] : a shared list which informs the main process how many
-                optimization tasks have already been computed. This list should
-                not be specified by the user, it only serves to provide
-                information about the optimization progress.
         """
         from scipy.optimize import minimize
-
-        # -----------------------------------------------------------------
-        # Prepare task
-        # -----------------------------------------------------------------
-
-        if task_supervisor is not None and self.verbose:
-            # Print multiprocessing progress
-            string = "\r" + "Progress: |"
-            for i in range(len(task_supervisor)):
-                if task_supervisor[i] == 1:
-                    string += "█"
-                elif task_supervisor[i] == -1:
-                    string += "X"
-                elif task_supervisor[i] == 2:
-                    string += "R"
-                else:
-                    string += " "
-            string += "|"
-            print(string, end="\r")
 
         # Assemble the theta vector we are optimizing
         coeffs = np.zeros(len(self.coeffs_nonmon[k]) + len(self.coeffs_mon[k]))
@@ -3298,25 +3115,6 @@ class transport_map:
         # Write in the coefficients
         coeffs[:div] = copy.copy(self.coeffs_nonmon[k])
         coeffs[div:] = copy.copy(self.coeffs_mon[k])
-
-        # ---------------------------------------------------------------------
-        # Re-create the functions
-        # ---------------------------------------------------------------------
-
-        if self.workers > 1:
-            # Restore the functions we previously deleted
-            self.fun_mon = []
-            self.fun_nonmon = []
-            for i in range(self.D):
-                # Create the function
-                funstring = "fun_mon_" + str(i)
-                exec(self.fun_mon_strings[i].replace("fun", funstring), globals())
-                exec("self.fun_mon.append(copy.deepcopy(" + funstring + "))")
-
-                # Create the function
-                funstring = "fun_nonmon_" + str(i)
-                exec(self.fun_nonmon_strings[i].replace("fun", funstring), globals())
-                exec("self.fun_nonmon.append(copy.deepcopy(" + funstring + "))")
 
         # ---------------------------------------------------------------------
         # Call the optimization routine
@@ -3341,30 +3139,6 @@ class transport_map:
         # Separate them into coefficients for monotone and nonmonotone parts
         coeffs_nonmon = coeffs_opt[:div]
         coeffs_mon = coeffs_opt[div:]
-
-        if task_supervisor is not None and self.verbose:
-            # If optimization was a success, mark it as such
-            if opt.success:
-                # '1' represents initial sucess ('█')
-                task_supervisor[k] = 1
-
-            else:
-                # '-1' represents failure ('X')
-                task_supervisor[k] = -1
-
-            # Print multiprocessing progress
-            string = "\r" + "Progress: |"
-            for i in range(len(task_supervisor)):
-                if task_supervisor[i] == 1:
-                    string += "█"
-                elif task_supervisor[i] == -1:
-                    string += "X"
-                elif task_supervisor[i] == 2:
-                    string += "R"
-                else:
-                    string += " "
-            string += "|"
-            print(string, end="\r")
 
         # Return both optimized coefficients
         return (coeffs_nonmon, coeffs_mon)
