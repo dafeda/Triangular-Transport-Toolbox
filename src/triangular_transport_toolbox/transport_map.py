@@ -2937,11 +2937,9 @@ class transport_map:
                     + np.sum(self.der_Psi_mon[k], axis=-1)[:, np.newaxis] * self.delta
                 )
 
-                logdS = np.log(dS)
-
                 objective = (
                     np.dot(coeffs_mon[np.newaxis, :], Ax)[0, 0] / 2
-                    - np.sum(logdS) / N
+                    - np.sum(np.log(dS)) / N
                     + np.inner(coeffs_mon, b)
                 )
 
@@ -3010,11 +3008,9 @@ class transport_map:
                     + np.sum(self.der_Psi_mon[k], axis=-1)[:, np.newaxis] * self.delta
                 )
 
-                logdS = np.log(dS)
-
                 objective = (
                     np.dot(coeffs_mon[np.newaxis, :], Ax)[0, 0] / 2
-                    - np.sum(logdS) / N
+                    - np.sum(np.log(dS)) / N
                     + np.inner(coeffs_mon, b)
                 )
 
