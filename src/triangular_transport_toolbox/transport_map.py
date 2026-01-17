@@ -522,7 +522,6 @@ class transport_map():
             # Create an array to decide when to stop
             if map_finished is None:
                 map_finished    = np.zeros((self.D,self.D),dtype=bool)
-            precmat_prev    = np.ones((self.D,self.D))
         
             # Store the precision matrix
             precmat_list    = [copy.copy(precmat)]
@@ -593,9 +592,6 @@ class transport_map():
                              
                         # Sort the nonmonotone map components
                         nonmonotone[k].sort()
-                    
-                    # Store the precision matrix for future reference
-                    precmat_prev    = copy.copy(precmat)
                     
                     # And append it to the list
                     precmat_list.append(copy.copy(precmat))
