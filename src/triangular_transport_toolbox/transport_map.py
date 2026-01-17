@@ -2883,8 +2883,9 @@ class transport_map:
     def worker_task_monotone(self, k):
         """
         This function provides the optimization task for the k-th map component
-        function. This specific function only becomes active if
-        monotonicity = 'separable monotonicity'.
+        function.
+
+        Only called when ``self.monotonicity == 'separable monotonicity'``.
 
         Variables:
 
