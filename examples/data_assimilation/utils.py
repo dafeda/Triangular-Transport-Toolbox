@@ -5,10 +5,10 @@ Utility functions for data assimilation examples.
 import numpy as np
 
 
-def lorenz_dynamics(t, Z, beta=8/3, rho=28, sigma=10):
+def lorenz_dynamics(t, Z, beta=8 / 3, rho=28, sigma=10):
     """
     Lorenz-63 dynamics.
-    
+
     Parameters
     ----------
     t : float
@@ -21,7 +21,7 @@ def lorenz_dynamics(t, Z, beta=8/3, rho=28, sigma=10):
         Lorenz parameter (default: 28)
     sigma : float
         Lorenz parameter (default: 10)
-        
+
     Returns
     -------
     dyn : ndarray
@@ -31,7 +31,7 @@ def lorenz_dynamics(t, Z, beta=8/3, rho=28, sigma=10):
         dZ1ds = -sigma * Z[0] + sigma * Z[1]
         dZ2ds = -Z[0] * Z[2] + rho * Z[0] - Z[1]
         dZ3ds = Z[0] * Z[1] - beta * Z[2]
-        
+
         dyn = np.asarray([dZ1ds, dZ2ds, dZ3ds])
     else:
         dZ1ds = -sigma * Z[..., 0] + sigma * Z[..., 1]
@@ -46,7 +46,7 @@ def lorenz_dynamics(t, Z, beta=8/3, rho=28, sigma=10):
 def rk4(Z, fun, t=0, dt=1, nt=1):
     """
     Fourth-order Runge-Kutta integration scheme.
-    
+
     Parameters
     ----------
     Z : ndarray
@@ -59,7 +59,7 @@ def rk4(Z, fun, t=0, dt=1, nt=1):
         Time step length (default: 1)
     nt : int
         Number of time steps (default: 1)
-        
+
     Returns
     -------
     Z : ndarray
@@ -68,7 +68,7 @@ def rk4(Z, fun, t=0, dt=1, nt=1):
     # Prepare array for use
     if len(Z.shape) == 1:  # We have only one particle, convert it to correct format
         Z = Z[np.newaxis, :]
-        
+
     # Go through all time steps
     for i in range(nt):
         # Calculate the RK4 values
@@ -76,8 +76,8 @@ def rk4(Z, fun, t=0, dt=1, nt=1):
         k2 = fun(t + i * dt + 0.5 * dt, Z + dt / 2 * k1)
         k3 = fun(t + i * dt + 0.5 * dt, Z + dt / 2 * k2)
         k4 = fun(t + i * dt + dt, Z + dt * k3)
-    
+
         # Update next value
         Z += dt / 6 * (k1 + 2 * k2 + 2 * k3 + k4)
-    
+
     return Z
