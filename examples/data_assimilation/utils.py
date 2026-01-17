@@ -43,7 +43,7 @@ def lorenz_dynamics(t, Z, beta=8 / 3, rho=28, sigma=10):
     return dyn
 
 
-def rk4(Z, fun, t=0, dt=1, nt=1):
+def rk4(Z, fun, t=0, dt=1.0, nt=1):
     """
     Fourth-order Runge-Kutta integration scheme.
 
