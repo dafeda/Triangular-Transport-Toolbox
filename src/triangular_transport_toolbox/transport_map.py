@@ -15,8 +15,6 @@ class transport_map:
         nonmonotone=None,
         polynomial_type="hermite function",
         monotonicity="integrated rectifier",
-        standardize_samples=True,
-        standardization="standard",
         workers=1,
         ST_scale_factor=1.0,
         ST_scale_mode="dynamic",
@@ -73,15 +71,6 @@ class transport_map:
                 [string] : keyword which specifies through what method the
                 transport map ensures monotonicity in the last dimensions.
                 Must be 'integrated rectifier' or 'separable monotonicity'.
-
-            standardize_samples - [default = True]
-                [boolean] : a True/False flag determining whether the transport
-                map should standardize the training samples before optimziation
-
-            standardization - [default = 'standard']
-                [string] : keyword which specifies whether standardization uses
-                mean and standard deviation ('standard') or median and
-                quantiles ('quantiles').
 
             workers - [default = 1]
                 [integer] : DEPRECATED. Multiprocessing support has been
@@ -225,9 +214,6 @@ class transport_map:
         if self.ST_scale_mode not in ["dynamic", "static"]:
             raise ValueError("'ST_scale_mode' must be either 'dynamic' or 'static'.")
 
-        # Is the map being standardized?
-        self.standardization = standardization
-
         # Initial value for the coefficients
         self.coeffs_init = coeffs_init
 
@@ -327,9 +313,7 @@ class transport_map:
 
         # Load and standardize the samples
         self.X = copy.copy(X)
-        self.standardize_samples = standardize_samples
-        if self.standardize_samples:
-            self.standardize()
+        self.standardize()
 
         # Do we specify map adaptation parameters?
         self.adaptation = adaptation
@@ -754,9 +738,8 @@ class transport_map:
 
         self.X = copy.copy(X)
 
-        # Standardize the samples, if desired
-        if self.standardize_samples:
-            self.standardize()
+        # Standardize the samples
+        self.standardize()
 
         # Set all parameters to zero
         for k in range(self.D):
@@ -783,28 +766,9 @@ class transport_map:
         internal computations.
         """
 
-        # In 'standard' mode, samples are standardized via their mean and
-        # marginal standard deviations
-        if self.standardization.lower() == "standard":
-            self.X_mean = np.mean(self.X, axis=0)
-            self.X_std = np.std(self.X, axis=0)
-
-        # In 'quantile' mode, samples are standardized via their quantiles.
-        elif (
-            self.standardization.lower() == "quantile"
-            or self.standardization.lower() == "quantiles"
-        ):
-            self.X_mean = np.quantile(self.X, q=0.5, axis=0)
-            self.X_std = (
-                np.quantile(self.X - self.X_mean, q=0.8413447460685429, axis=0)
-                - np.quantile(self.X - self.X_mean, q=0.15865525393145707, axis=0)
-            ) / 2
-
-        # Raise an error if the specified mode is not recognized
-        else:
-            raise ValueError(
-                "'standardization' must be either 'standard' or 'quantiles'."
-            )
+        # Standardize samples via their mean and marginal standard deviations
+        self.X_mean = np.mean(self.X, axis=0)
+        self.X_std = np.std(self.X, axis=0)
 
         # Standardize the samples
         self.X -= self.X_mean
@@ -2541,12 +2505,12 @@ class transport_map:
                 optimize the transport map, where N is the number of samples
                 and D is the number of dimensions.
         """
-        # If we have specified
-        if X is not None and self.standardize_samples:
+        # If X is provided, standardize it; otherwise use stored samples
+        if X is not None:
             # Create a local copy of X
             X = copy.copy(X)
 
-            # Standardize the samples, if thhe user provided them
+            # Standardize the samples
             X -= self.X_mean
             X /= self.X_std
 
@@ -3494,10 +3458,9 @@ class transport_map:
                 else:
                     X = self.vectorized_root_search_bisection(Zk=Z[:, k], X=X, k=k)
 
-            # If we standardized the samples, undo the standardization
-            if self.standardize_samples:
-                X *= self.X_std
-                X += self.X_mean
+            # Undo the standardization
+            X *= self.X_std
+            X += self.X_mean
 
         # =====================================================================
         # X_star was provided, and matches the reduced map definition
@@ -3508,13 +3471,10 @@ class transport_map:
                 # Initialize the output ensemble
                 X = np.zeros((N, self.skip_dimensions + self.D))
 
-                # If we standardize the samples, we must also standardize the
-                # precalculated values first
+                # Standardize the precalculated values first
                 X[:, : self.skip_dimensions] = copy.copy(X_star)
-
-                if self.standardize_samples:
-                    X[:, : self.skip_dimensions] -= self.X_mean[: self.skip_dimensions]
-                    X[:, : self.skip_dimensions] /= self.X_std[: self.skip_dimensions]
+                X[:, : self.skip_dimensions] -= self.X_mean[: self.skip_dimensions]
+                X[:, : self.skip_dimensions] /= self.X_std[: self.skip_dimensions]
 
                 # Go through all dimensions
                 for k in np.arange(0, self.D, 1):
@@ -3527,10 +3487,9 @@ class transport_map:
                     else:
                         X = self.vectorized_root_search_bisection(Zk=Z[:, k], X=X, k=k)
 
-                # If we standardized the samples, undo the standardization
-                if self.standardize_samples:
-                    X *= self.X_std
-                    X += self.X_mean
+                # Undo the standardization
+                X *= self.X_std
+                X += self.X_mean
 
             # =================================================================
             # A full map was defined, but so were precalculated values
@@ -3544,14 +3503,10 @@ class transport_map:
                 # Initialize the output ensemble
                 X = np.zeros((N, D))
 
-                # If we standardize the samples, we must also standardize the
-                # precalculated values first
+                # Standardize the precalculated values first
                 X[:, :skip_dimensions] = copy.copy(X_star)
-
-                if self.standardize_samples:
-                    # Standardize the precalculated samples for the map
-                    X[:, :skip_dimensions] -= self.X_mean[:skip_dimensions]
-                    X[:, :skip_dimensions] /= self.X_std[:skip_dimensions]
+                X[:, :skip_dimensions] -= self.X_mean[:skip_dimensions]
+                X[:, :skip_dimensions] /= self.X_std[:skip_dimensions]
 
                 # Go through all dimensions
                 for i, k in enumerate(np.arange(skip_dimensions, D, 1)):
@@ -3564,10 +3519,9 @@ class transport_map:
                     else:
                         X = self.vectorized_root_search_bisection(Zk=Z[:, i], X=X, k=k)
 
-                # If we standardized the samples, undo the standardization
-                if self.standardize_samples:
-                    X *= self.X_std
-                    X += self.X_mean
+                # Undo the standardization
+                X *= self.X_std
+                X += self.X_mean
 
         return X[:, self.skip_dimensions :]
 

@@ -162,7 +162,6 @@ tm = transport_map(
     X=X,  # N-by-D matrix of training samples
     polynomial_type="hermite function",  # Re-scaled probabilist's Hermites
     monotonicity="separable monotonicity",  # Monotonicity method
-    standardize_samples=True,  # Standardize the training ensemble X
     verbose=True,  # Shall we print the map's progress?
     workers=1,
 )  # Number of workers for the parallel optimization.)

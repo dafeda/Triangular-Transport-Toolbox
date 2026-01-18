@@ -107,7 +107,6 @@ tm = transport_map(
     X=copy.copy(X),  # Training ensemble
     polynomial_type="hermite function",  # Hermite functions for stability
     monotonicity="separable monotonicity",  # Required for cross-terms
-    standardize_samples=True,  # Standardize X before training
     workers=1,  # Number of workers for parallel optimization
     quadrature_input={  # Keywords for the Gaussian quadrature
         "order": 25,  # Increase if map is bad; more computational effort
@@ -289,7 +288,6 @@ tm = transport_map(
     X=copy.copy(X),  # Training ensemble
     polynomial_type="hermite function",  # Hermite functions for stability
     monotonicity="separable monotonicity",  # Required for cross-terms
-    standardize_samples=True,  # Standardize X before training
     workers=1,  # Number of workers for parallel optimization
     quadrature_input={  # Keywords for the Gaussian quadrature
         "order": 25,  # Increase if map is bad; more computational effort
