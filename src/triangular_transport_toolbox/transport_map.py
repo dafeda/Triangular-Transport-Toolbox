@@ -282,8 +282,7 @@ class transport_map:
             self.polyfunc_str = "np.polynomial.Polynomial"
         elif (
             polynomial_type.lower() == "hermite"
-            or polynomial_type.lower() == "phycisist's hermite"
-            or polynomial_type.lower() == "phycisists hermite"
+            or polynomial_type.lower() == "physicist's hermite"
         ):
             self.polyfunc = np.polynomial.hermite.Hermite
             self.polyfunc_der = np.polynomial.hermite.hermder
@@ -291,7 +290,6 @@ class transport_map:
         elif (
             polynomial_type.lower() == "hermite_e"
             or polynomial_type.lower() == "probabilist's hermite"
-            or polynomial_type.lower() == "probabilists hermite"
         ):
             self.polyfunc = np.polynomial.hermite_e.HermiteE
             self.polyfunc_der = np.polynomial.hermite_e.hermeder
@@ -308,11 +306,7 @@ class transport_map:
             self.polyfunc = np.polynomial.legendre.Legendre
             self.polyfunc_der = np.polynomial.legendre.legder
             self.polyfunc_str = "np.polynomial.Legendre"
-        elif (
-            polynomial_type.lower() == "hermite function"
-            or polynomial_type.lower() == "hermite_function"
-            or polynomial_type.lower() == "hermite functions"
-        ):
+        elif polynomial_type.lower() == "hermite function":
             # Unify this polynomial string, so we can use it as a flag
             self.polynomial_type = "hermite function"
             self.polyfunc = np.polynomial.hermite_e.HermiteE
@@ -321,8 +315,10 @@ class transport_map:
         else:
             raise Exception(
                 "Polynomial type not understood. The variable polynomial_type "
-                "should be either 'power series', 'hermite', 'hermite_e', "
-                "'chebyshev', 'laguerre', or 'legendre'."
+                "should be either 'standard', 'polynomial', 'power series', "
+                "'hermite', 'physicist's hermite', 'hermite_e', "
+                "'probabilist's hermite', 'chebyshev', 'laguerre', 'legendre', "
+                "or 'hermite function'."
             )
 
         # ---------------------------------------------------------------------
