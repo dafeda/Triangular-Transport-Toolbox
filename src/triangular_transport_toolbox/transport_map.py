@@ -187,7 +187,7 @@ class transport_map:
             if "order" not in list(self.quadrature_input.keys()):
                 order = 100  # Default value
             else:
-                order = quadrature_input["order"]  # Read input specification
+                order = self.quadrature_input["order"]  # Read input specification
 
             # Weights and integration points are not specified; calculate them
             # To get the weights and positions of the integration points, we must
