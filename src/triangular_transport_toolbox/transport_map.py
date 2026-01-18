@@ -178,14 +178,17 @@ class transport_map:
 
         # Input for the Gaussian quadrature module, used when monotonicity is
         # set to 'integrated rectifier'.
-        self.quadrature_input = quadrature_input if quadrature_input is not None else {}
+        self.quadrature_input = (
+            quadrature_input if quadrature_input is not None else {"order": 100}
+        )
 
         # Check if we can pre-calculate the integration points
-        if "xis" not in list(self.quadrature_input.keys()) and "Ws" not in list(
-            self.quadrature_input.keys()
-        ):
-            if "order" not in list(self.quadrature_input.keys()):
-                order = 100  # Default value
+        if "xis" not in self.quadrature_input and "Ws" not in self.quadrature_input:
+            if "order" not in self.quadrature_input:
+                raise KeyError(
+                    "'order' must be specified in quadrature_input when "
+                    "'xis' and 'Ws' are not provided."
+                )
             else:
                 order = self.quadrature_input["order"]  # Read input specification
 
@@ -1084,7 +1087,7 @@ class transport_map:
                 modifier_log = {"LIN": None}
 
             # Add a "variables" key to the modifier_log, if it does not already exist
-            if "variables" not in list(modifier_log.keys()):
+            if "variables" not in modifier_log:
                 modifier_log["variables"] = {}
 
             # Create an empty string
@@ -1146,7 +1149,7 @@ class transport_map:
                         var += f"*np.exp(-__x__[...,{ui[i]}]**2/4)"
 
                     # Save the variable ---------------------------------------
-                    if key not in list(modifier_log["variables"].keys()):
+                    if key not in modifier_log["variables"]:
                         modifier_log["variables"][key] = copy.copy(var)
 
                     # Add the variable to the string --------------------------
@@ -1192,7 +1195,7 @@ class transport_map:
                     varder += f"(__x__[...,{ui[i]}])"
 
                     # Save the variable ---------------------------------------
-                    if keyder not in list(modifier_log["variables"].keys()):
+                    if keyder not in modifier_log["variables"]:
                         modifier_log["variables"][keyder] = copy.copy(varder)
 
                     # Add the variable to the string --------------------------
@@ -1230,7 +1233,7 @@ class transport_map:
                         varbase += f"(__x__[...,{ui[i]}])"
 
                         # Save the variable -----------------------------------
-                        if key not in list(modifier_log["variables"].keys()):
+                        if key not in modifier_log["variables"]:
                             modifier_log["variables"][key] = copy.copy(varbase)
 
                         # Now we can construct the actual derivative ----------
@@ -1348,11 +1351,11 @@ class transport_map:
                 # -------------------------------------------------------------
 
                 # If this term includes and precalculations, extract them
-                if "variables" in list(modifier_log.keys()):
+                if "variables" in modifier_log:
                     # There are precalculating variables. Go through each
-                    for key in list(modifier_log["variables"].keys()):
+                    for key in modifier_log["variables"]:
                         # Have we logged this one already?
-                        if key not in list(dict_precalc.keys()):
+                        if key not in dict_precalc:
                             # No, we haven't. Add it.
                             dict_precalc[key] = copy.copy(
                                 modifier_log["variables"][key]
@@ -1389,7 +1392,7 @@ class transport_map:
                 # -------------------------------------------------------------
 
                 # Is this term a special term?
-                if "ST" in list(modifier_log.keys()):
+                if "ST" in modifier_log:
                     # Mark this term as a special one
                     ST_indices.append(i)
 
@@ -1589,7 +1592,7 @@ class transport_map:
             # -----------------------------------------------------------------
 
             # Add all precalculation terms
-            for key in list(dict_precalc.keys()):
+            for key in dict_precalc:
                 string += key + " = " + copy.copy(dict_precalc[key]) + ";\n\t"
 
             # -----------------------------------------------------------------
@@ -1681,11 +1684,11 @@ class transport_map:
                 # -------------------------------------------------------------
 
                 # If this term includes and precalculations, extract them
-                if "variables" in list(modifier_log.keys()):
+                if "variables" in modifier_log:
                     # There are precalculating variables. Go through each
-                    for key in list(modifier_log["variables"].keys()):
+                    for key in modifier_log["variables"]:
                         # Have we logged this one already?
-                        if key not in list(dict_precalc.keys()):
+                        if key not in dict_precalc:
                             # No, we haven't. Add it.
                             dict_precalc[key] = copy.copy(
                                 modifier_log["variables"][key]
@@ -1722,7 +1725,7 @@ class transport_map:
                 # -------------------------------------------------------------
 
                 # Is this term a special term?
-                if "ST" in list(modifier_log.keys()):
+                if "ST" in modifier_log:
                     # Yes, it is. Add additional modules to load, if necessary
                     if "import scipy.special" not in modules:
                         modules.append("import scipy.special")
@@ -1846,7 +1849,7 @@ class transport_map:
                 # -------------------------------------------------------------
 
                 # Add all precalculation terms
-                for key in list(dict_precalc.keys()):
+                for key in dict_precalc:
                     string += key + " = " + copy.copy(dict_precalc[key]) + ";\n\t"
 
                 # -------------------------------------------------------------
@@ -1992,7 +1995,7 @@ class transport_map:
                 # If this is a constant term, undo the lower constraint
                 # -------------------------------------------------------------
 
-                if "constant" in list(modifier_log.keys()):
+                if "constant" in modifier_log:
                     # Assign linear constraints
                     self.optimization_constraints_lb[k][j] = -np.inf
                     self.optimization_constraints_ub[k][j] = +np.inf
@@ -2002,11 +2005,11 @@ class transport_map:
                 # -------------------------------------------------------------
 
                 # If this term includes and precalculations, extract them
-                if "variables" in list(modifier_log.keys()):
+                if "variables" in modifier_log:
                     # There are precalculating variables. Go through each
-                    for key in list(modifier_log["variables"].keys()):
+                    for key in modifier_log["variables"]:
                         # Have we logged this one already?
-                        if key not in list(dict_precalc.keys()):
+                        if key not in dict_precalc:
                             # No, we haven't. Add it.
                             dict_precalc[key] = copy.copy(
                                 modifier_log["variables"][key]
@@ -2017,7 +2020,7 @@ class transport_map:
                 # -------------------------------------------------------------
 
                 # Is this term a special term?
-                if "ST" in list(modifier_log.keys()):
+                if "ST" in modifier_log:
                     # Mark this term as a special one
                     ST_indices.append(j)
 
@@ -2194,7 +2197,7 @@ class transport_map:
             # -----------------------------------------------------------------
 
             # Add all precalculation terms
-            for key in list(dict_precalc.keys()):
+            for key in dict_precalc:
                 string += key + " = " + copy.copy(dict_precalc[key]) + ";\n\t"
 
             # -----------------------------------------------------------------
@@ -2455,7 +2458,7 @@ class transport_map:
         # Go through all terms
         for k in K:
             # If there are cross-terms, do the same thing
-            if "cross-terms" in list(self.special_terms[k].keys()):
+            if "cross-terms" in self.special_terms[k]:
                 # Write in the special term locations
                 self.special_terms[k]["cross-terms"] = place_special_terms(
                     self, dictionary=copy.deepcopy(self.special_terms[k]["cross-terms"])
