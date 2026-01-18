@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import scipy.stats
 
-from triangular_transport_toolbox import transport_map
+from triangular_transport_toolbox import SeparableMonotonicity, transport_map
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from utils import lorenz_dynamics, rk4
@@ -177,7 +177,7 @@ tm = transport_map(
     nonmonotone=nonmonotone_filter,
     X=np.random.uniform(size=(N, 1 + D)),  # Dummy input
     polynomial_type="hermite function",
-    monotonicity="separable monotonicity",
+    monotonicity=SeparableMonotonicity(),
     regularization="l2",
     regularization_lambda=lmbda,
     verbose=False,
@@ -352,7 +352,7 @@ tm = transport_map(
     nonmonotone=nonmonotone_BWS,
     X=np.random.uniform(size=(N, int(2 * D))),
     polynomial_type="probabilist's hermite",
-    monotonicity="separable monotonicity",
+    monotonicity=SeparableMonotonicity(),
     regularization="l2",
     regularization_lambda=lmbda,
     verbose=False,

@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from triangular_transport_toolbox import transport_map
+from triangular_transport_toolbox import SeparableMonotonicity, transport_map
 
 
 @pytest.fixture
@@ -13,7 +13,13 @@ def simple_map():
     monotone = [[[0]], [[1]]]
     nonmonotone = [[[]], [[0]]]
 
-    tm = transport_map(X=X, monotone=monotone, nonmonotone=nonmonotone, verbose=False)
+    tm = transport_map(
+        X=X,
+        monotone=monotone,
+        nonmonotone=nonmonotone,
+        monotonicity=SeparableMonotonicity(),
+        verbose=False,
+    )
     return tm
 
 

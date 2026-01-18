@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import scipy.stats
 
-from triangular_transport_toolbox import transport_map
+from triangular_transport_toolbox import SeparableMonotonicity, transport_map
 
 # =============================================================================
 # Step 1: Train the map
@@ -106,15 +106,8 @@ tm = transport_map(
     nonmonotone=nonmonotone,
     X=copy.copy(X),  # Training ensemble
     polynomial_type="hermite function",  # Hermite functions for stability
-    monotonicity="separable monotonicity",  # Required for cross-terms
+    monotonicity=SeparableMonotonicity(),  # Required for cross-terms
     workers=1,  # Number of workers for parallel optimization
-    quadrature_input={  # Keywords for the Gaussian quadrature
-        "order": 25,  # Increase if map is bad; more computational effort
-        "adaptive": False,
-        "threshold": 1e-9,
-        "verbose": False,
-        "increment": 6,
-    },
 )
 
 # Optimize the map
@@ -287,15 +280,8 @@ tm = transport_map(
     nonmonotone=nonmonotone[1:],
     X=copy.copy(X),  # Training ensemble
     polynomial_type="hermite function",  # Hermite functions for stability
-    monotonicity="separable monotonicity",  # Required for cross-terms
+    monotonicity=SeparableMonotonicity(),  # Required for cross-terms
     workers=1,  # Number of workers for parallel optimization
-    quadrature_input={  # Keywords for the Gaussian quadrature
-        "order": 25,  # Increase if map is bad; more computational effort
-        "adaptive": False,
-        "threshold": 1e-9,
-        "verbose": False,
-        "increment": 6,
-    },
 )
 
 # Optimize the map
