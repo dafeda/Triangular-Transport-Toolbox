@@ -146,7 +146,7 @@ class transport_map:
             Variables for monotonicity = 'integrated rectifier'
             ===================================================================
 
-            quadrature_input - [default = {}]
+            quadrature_input - [default = None]
                 [dictionary] : dictionary for optional keywords to overwrite
                 the default variables in the function Gauss_quadrature. Only
                 used if monotonicity = 'integrated rectifier'.
