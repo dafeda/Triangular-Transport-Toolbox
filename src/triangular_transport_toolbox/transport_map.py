@@ -6,22 +6,24 @@ import copy
 
 import numpy as np
 
-from .rectifier import Rectifier
+from .monotonicity import (
+    MonotonicityStrategy,
+    SeparableMonotonicity,
+)
 
 
 class transport_map:
     def __init__(
         self,
         X,
+        monotonicity: MonotonicityStrategy,
         monotone=None,
         nonmonotone=None,
         polynomial_type="hermite function",
-        monotonicity="integrated rectifier",
         workers=1,
         ST_scale_factor=1.0,
         ST_scale_mode="dynamic",
         coeffs_init=0.0,
-        alternate_root_finding=True,
         root_search_truncation=True,
         verbose=True,
         linearization=None,
@@ -29,9 +31,6 @@ class transport_map:
         linearization_increment=1e-6,
         regularization=None,
         regularization_lambda=0.1,
-        quadrature_input=None,
-        rectifier_type="exponential",
-        delta=1e-8,
         adaptation=False,
         adaptation_map_type="cross-terms",
         adaptation_max_order=10,
@@ -69,10 +68,10 @@ class transport_map:
                 [string] : keyword which specifies what kinds of polynomials
                 are used for the transport map component functions.
 
-            monotonicity - [default = 'integrated rectifier']
-                [string] : keyword which specifies through what method the
+            monotonicity
+                [MonotonicityStrategy] : strategy object which specifies how the
                 transport map ensures monotonicity in the last dimensions.
-                Must be 'integrated rectifier' or 'separable monotonicity'.
+                Must be an IntegratedRectifier or SeparableMonotonicity instance.
 
             workers - [default = 1]
                 [integer] : DEPRECATED. Multiprocessing support has been
@@ -92,12 +91,6 @@ class transport_map:
                 [float] : value used to initialize the coefficients at the
                 start of the map optimization.
 
-            alternate_root_finding - [default = True]
-                [boolean] : flag which determines whether an accelerated,
-                alternate root finding algorithm should be used if monotonicity
-                is set to "separable monotonicity". If False, a general
-                bisection algorithm is used instead.
-
             root_search_truncation - [default = True]
                 [boolean] : flag which determines whether the root search
                 truncates outliers, which serves to prevent numerical overflow
@@ -107,12 +100,6 @@ class transport_map:
                 [boolean] : a True/False flag which determines whether the map
                 prints updates or not. Set to 'False' if running on a cluster
                 to avoid recording excessive output logs.
-
-            delta - [default = 1E-8]
-                [float] : small increment to prevent numerical underflow. If
-                monotonicity == 'separable monotonicity', provides a small offset
-                to  the objective; if monotonicity == 'integrated rectifier',
-                it is added to the rectifier.
 
             Linearization -----------------------------------------------------
 
@@ -142,20 +129,6 @@ class transport_map:
                 [float] : float which specifies the weight for the map coeff-
                 icient regularization. Only used if regularization is not None.
 
-            ===================================================================
-            Variables for monotonicity = 'integrated rectifier'
-            ===================================================================
-
-            quadrature_input - [default = None]
-                [dictionary] : dictionary for optional keywords to overwrite
-                the default variables in the function Gauss_quadrature. Only
-                used if monotonicity = 'integrated rectifier'.
-
-            rectifier_type - [default = 'exponential']
-                [string] : keyword which specifies which function is used to
-                rectify the monotone map components. Only used if
-                monotonicity = 'integrated rectifier'.
-
         """
         # ---------------------------------------------------------------------
         # Load in pre-defined variables
@@ -170,47 +143,14 @@ class transport_map:
         # The workers parameter is kept for backwards compatibility but ignored
         self.workers = 1  # Force single-threaded execution
 
-        # Specification for the rectifiers, used when monotonicity is set to
-        # 'integrated rectifier'.
-        self.rectifier_type = rectifier_type
-        self.delta = delta
-        self.rect = Rectifier(mode=self.rectifier_type, delta=self.delta)
-
-        # Input for the Gaussian quadrature module, used when monotonicity is
-        # set to 'integrated rectifier'.
-        self.quadrature_input = (
-            quadrature_input if quadrature_input is not None else {"order": 100}
-        )
-
-        # Check if we can pre-calculate the integration points
-        if "xis" not in self.quadrature_input and "Ws" not in self.quadrature_input:
-            if "order" not in self.quadrature_input:
-                raise KeyError(
-                    "'order' must be specified in quadrature_input when "
-                    "'xis' and 'Ws' are not provided."
-                )
-            else:
-                order = self.quadrature_input["order"]  # Read input specification
-
-            # Weights and integration points are not specified; calculate them
-            # To get the weights and positions of the integration points, we must
-            # provide the *order*-th Legendre polynomial and its derivative
-            # As a first step, get the coefficients of both functions
-            coefs = [0] * order + [1]
-            coefs_der = np.polynomial.legendre.legder(coefs)
-
-            # With the coefficients defined, define the Legendre function
-            LegendreDer = np.polynomial.legendre.Legendre(coefs_der)
-
-            # Obtain the locations of the integration points
-            xis = np.polynomial.legendre.legroots(coefs)
-
-            # Calculate the weights of the integration points
-            Ws = 2.0 / ((1.0 - xis**2) * (LegendreDer(xis) ** 2))
-
-            # Store this result in the dictionary
-            self.quadrature_input["xis"] = copy.copy(xis)
-            self.quadrature_input["Ws"] = copy.copy(Ws)
+        # Set up the monotonicity strategy
+        if not isinstance(monotonicity, MonotonicityStrategy):
+            raise TypeError(
+                "monotonicity must be a MonotonicityStrategy instance "
+                "(IntegratedRectifier or SeparableMonotonicity), "
+                f"got {type(monotonicity).__name__}"
+            )
+        self.monotonicity = monotonicity
 
         # Parameters for special terms optionally used in the specification of
         # the basis functions.
@@ -221,9 +161,6 @@ class transport_map:
 
         # Initial value for the coefficients
         self.coeffs_init = coeffs_init
-
-        # Are we useing alternate root finding?
-        self.alternate_root_finding = alternate_root_finding
 
         # If set to True, prevents extrapolation during root finding. Use of
         # this option is not recommended.
@@ -240,19 +177,6 @@ class transport_map:
         self.linearization = linearization
         self.linearization_specified_as_quantiles = linearization_specified_as_quantiles
         self.linearization_increment = linearization_increment
-
-        # How are we ensuring monotonicity?
-        self.monotonicity = monotonicity
-        if self.monotonicity.lower() not in [
-            "integrated rectifier",
-            "separable monotonicity",
-        ]:
-            raise ValueError(
-                "'monotonicity' type "
-                + str(self.monotonicity)
-                + " not understood. "
-                + "Must be either 'integrated rectifier' or 'separable monotonicity'."
-            )
 
         # ---------------------------------------------------------------------
         # Read and assign the polynomial type
@@ -669,22 +593,11 @@ class transport_map:
 
         if (
             self.adaptation_map_type == "cross-terms"
-            and self.monotonicity.lower() != "integrated rectifier"
+            and not self.monotonicity.supports_cross_terms_adaptation()
         ):
             raise ValueError(
-                "It is only possible to use adaptation_map_type = 'cross-terms' if "
-                + "monotonicity = 'integrated rectifier'."
-            )
-
-        if self.monotonicity.lower() not in [
-            "integrated rectifier",
-            "separable monotonicity",
-        ]:
-            raise ValueError(
-                "'monotonicity' type "
-                + str(self.monotonicity)
-                + " not understood. "
-                + "Must be either 'integrated rectifier' or 'separable monotonicity'."
+                "It is only possible to use adaptation_map_type = 'cross-terms' with "
+                + "IntegratedRectifier monotonicity strategy."
             )
 
         if self.ST_scale_mode not in ["dynamic", "static"]:
@@ -701,19 +614,19 @@ class transport_map:
             )
 
         if self.regularization is not None:
-            if self.monotonicity.lower() != "separable monotonicity":
+            if isinstance(self.monotonicity, SeparableMonotonicity):
                 if self.regularization.lower() not in ["l2"]:
                     raise ValueError(
-                        "When using 'separable monotonicity',"
+                        "When using SeparableMonotonicity, "
                         + "'regularization' must either be None "
                         + "(deactivated) or 'L2' (L2 regularization). Currently, it "
                         + "is defined as "
                         + str(self.regularization)
                     )
             else:
-                if self.regularization.lower() not in ["l2"]:
+                if self.regularization.lower() not in ["l1", "l2"]:
                     raise ValueError(
-                        "When using 'integrated rectifier',"
+                        "When using IntegratedRectifier, "
                         + "'regularization' must either be None "
                         + "(deactivated), 'L1' (L1 regularization) or "
                         + "'L2' (L2 regularization). Currently, it "
@@ -792,9 +705,8 @@ class transport_map:
         self.Psi_mon = []
         self.Psi_nonmon = []
 
-        # Add the monotone basis function's derivatives if we use separable monotonicity
-        if self.monotonicity.lower() == "separable monotonicity":
-            self.der_Psi_mon = []
+        # Reset any strategy-specific precalculations
+        self.monotonicity.reset_precalculations()
 
         # Precalculate matrices
         for k in range(self.D):
@@ -804,12 +716,8 @@ class transport_map:
                 copy.copy(self.fun_nonmon[k](copy.copy(self.X), self))
             )
 
-            # Add the monotone basis function's derivatives if we use
-            # separable monotonicity
-            if self.monotonicity.lower() == "separable monotonicity":
-                self.der_Psi_mon.append(
-                    copy.copy(self.der_fun_mon[k](copy.copy(self.X), self))
-                )
+            # Perform any strategy-specific precalculations
+            self.monotonicity.precalculate(self, k)
 
         return
 
@@ -1928,26 +1836,30 @@ class transport_map:
         # =================================================================
         # =================================================================
 
-        # If monotonicity mode is 'separable monotonicity', we also require the
-        # derivative of the monotone part of the map
-        if self.monotonicity.lower() == "separable monotonicity":
-            self.function_derivative_constructor_alternative()
+        # Build derivative functions if required by the monotonicity strategy
+        self.monotonicity.build_derivative_functions(self)
 
         return
 
-    def function_derivative_constructor_alternative(self):
+    def build_derivative_functions_for_separable(self):
         """
-        This function is the complement to 'function_constructor_alternative',
-        but instead constructs the derivative of the map's component functions.
-        It constructs the functions' strings, then converts them into
-        functions.
+        Build derivative functions for separable monotonicity.
+        This is called by SeparableMonotonicity.build_derivative_functions().
+
+        Constructs the derivative of the map's component functions.
+        It constructs the functions' strings, then converts them into functions.
         """
+        # Verify we have a SeparableMonotonicity strategy
+        assert isinstance(self.monotonicity, SeparableMonotonicity), (
+            "build_derivative_functions_for_separable should only be called "
+            "with SeparableMonotonicity strategy"
+        )
 
-        self.der_fun_mon = []
-        self.der_fun_mon_strings = []
-
-        self.optimization_constraints_lb = []
-        self.optimization_constraints_ub = []
+        # Store references in the monotonicity strategy
+        self.monotonicity.der_fun_mon = []
+        self.monotonicity.der_fun_mon_strings = []
+        self.monotonicity.optimization_constraints_lb = []
+        self.monotonicity.optimization_constraints_ub = []
 
         # Find out how many function terms we are building
         K = len(self.monotone)
@@ -1961,8 +1873,10 @@ class transport_map:
             # =================================================================
 
             # Set optimization constraints
-            self.optimization_constraints_lb.append(np.zeros(len(self.monotone[k])))
-            self.optimization_constraints_ub.append(
+            self.monotonicity.optimization_constraints_lb.append(
+                np.zeros(len(self.monotone[k]))
+            )
+            self.monotonicity.optimization_constraints_ub.append(
                 np.ones(len(self.monotone[k])) * np.inf
             )
 
@@ -1997,8 +1911,8 @@ class transport_map:
 
                 if "constant" in modifier_log:
                     # Assign linear constraints
-                    self.optimization_constraints_lb[k][j] = -np.inf
-                    self.optimization_constraints_ub[k][j] = +np.inf
+                    self.monotonicity.optimization_constraints_lb[k][j] = -np.inf
+                    self.monotonicity.optimization_constraints_ub[k][j] = +np.inf
 
                 # -------------------------------------------------------------
                 # Extract any precalculations, where applicable
@@ -2228,12 +2142,14 @@ class transport_map:
             # -----------------------------------------------------------------
 
             # Append the function string
-            self.der_fun_mon_strings.append(string)
+            self.monotonicity.der_fun_mon_strings.append(string)
 
             # Create an actual function
             funstring = "der_fun_mon_" + str(k)
             exec(string.replace("fun", funstring), globals())
-            exec("self.der_fun_mon.append(copy.deepcopy(" + funstring + "))")
+            exec(
+                "self.monotonicity.der_fun_mon.append(copy.deepcopy(" + funstring + "))"
+            )
 
         return
 
@@ -2605,44 +2521,8 @@ class transport_map:
         # Calculate the monotone part
         # ---------------------------------------------------------------------
 
-        # If we use an 'integrated rectifier' approach to ensure monotonicity
-        if self.monotonicity == "integrated rectifier":
-            # Prepare the integration argument
-            def integral_argument(x, y, coeffs_mon, k):
-                # First reconstruct the full X matrix
-                X_loc = copy.copy(y)
-                X_loc[:, self.skip_dimensions + k] = copy.copy(x)
-
-                # Then evaluate the Psi matrix
-                Psi_mon_loc = self.fun_mon[k](X_loc, self)
-
-                # Determine the gradients
-                rect_arg = np.dot(Psi_mon_loc, coeffs_mon[:, np.newaxis])[..., 0]
-
-                # Send the rectifier argument through the rectifier
-                arg = self.rect.evaluate(rect_arg)
-
-                # If there is any delta term to prevent underflow, add it
-                arg += self.delta
-
-                return arg
-
-            # Evaluate the integral
-            monotone_part = self.GaussQuadrature(
-                f=integral_argument,
-                a=0,
-                b=x[..., self.skip_dimensions + k],
-                args=(x, coeffs_mon, k),
-                **self.quadrature_input,
-            )
-
-        # If we use a 'separable monotonicity' approach to ensure monotonicity
-        elif self.monotonicity == "separable monotonicity":
-            # In the case that monotonicity is enforced through parameterization,
-            # simply evaluate the monotone funciton
-            monotone_part = np.dot(self.fun_mon[k](x, self), coeffs_mon[:, np.newaxis])[
-                :, 0
-            ]
+        # Delegate to the monotonicity strategy
+        monotone_part = self.monotonicity.evaluate_monotone_part(self, x, k, coeffs_mon)
 
         # ---------------------------------------------------------------------
         # Combine both terms
@@ -2657,7 +2537,7 @@ class transport_map:
         """
         This function evaluates the pushforward density, that is to say the
         map's approximation to the standard Gaussian reference. Currently only
-        implemented for 'separable monotonicity'.
+        implemented for SeparableMonotonicity.
 
         Variables:
 
@@ -2681,9 +2561,9 @@ class transport_map:
                 during the inversion process.
         """
         # Make sure the user uses separable monotonicity
-        assert self.monotonicity == "separable monotonicity", (
+        assert isinstance(self.monotonicity, SeparableMonotonicity), (
             "evaluate_pushforward_density is currently only implemented "
-            "for monotonicity = 'separable monotonicity'."
+            "for SeparableMonotonicity."
         )
 
         # Compute the pre-image points
@@ -2707,7 +2587,9 @@ class transport_map:
 
             # Evaluate the derivative of the monotone part wrt x_k of the k-th
             # map component function.
-            der_Psi_mon = copy.copy(self.der_fun_mon[k](copy.copy(X), self))
+            der_Psi_mon = copy.copy(
+                self.monotonicity.der_fun_mon[k](copy.copy(X), self)
+            )
 
             # Compute the derivatives of this map component function wrt the
             # last variable x_k
@@ -2728,7 +2610,7 @@ class transport_map:
         """
         This function evaluates the pullback density, that is to say the
         map's approximation to the target density. Currently only implemented
-        for 'separable monotonicity'.
+        for SeparableMonotonicity.
 
         Variables:
 
@@ -2741,9 +2623,9 @@ class transport_map:
         import scipy.stats
 
         # Make sure the user uses separable monotonicity
-        assert self.monotonicity == "separable monotonicity", (
-            "evaluate_pushforward_density is currently only implemented "
-            "for monotonicity = 'separable monotonicity'."
+        assert isinstance(self.monotonicity, SeparableMonotonicity), (
+            "evaluate_pullback_density is currently only implemented "
+            "for SeparableMonotonicity."
         )
 
         # If this is a conditional map, re-create the full target vector
@@ -2769,7 +2651,9 @@ class transport_map:
 
             # Evaluate the derivative of the monotone part wrt x_k of the k-th
             # map component function.
-            der_Psi_mon = copy.copy(self.der_fun_mon[k](copy.copy(X), self))
+            der_Psi_mon = copy.copy(
+                self.monotonicity.der_fun_mon[k](copy.copy(X), self)
+            )
 
             # Compute the derivatives of this map component function wrt the
             # last variable x_k
@@ -2805,254 +2689,24 @@ class transport_map:
         if K is None:
             K = np.arange(self.D)
 
-        # The standard optimization pathway, most flexibility
-        if self.monotonicity == "integrated rectifier":
-            # Go through all map components
-            for k in K:
-                # Optimize this map component
-                results = self.worker_task(k=k)
+        # Delegate to the monotonicity strategy for optimization
+        for k in K:
+            # Optimize this map component using the strategy
+            results = self.monotonicity.optimize_component(self, k)
 
-                # Print optimization progress
-                if self.verbose:
-                    string = "\r" + "Progress: |"
-                    string += (k + 1) * "█"
-                    string += (len(K) - k - 1) * " "
-                    string += "|"
-                    print(string, end="\r")
+            # Print optimization progress
+            if self.verbose:
+                string = "\r" + "Progress: |"
+                string += (k + 1) * "█"
+                string += (len(K) - k - 1) * " "
+                string += "|"
+                print(string, end="\r")
 
-                # Extract and store the optimized coefficients
-                self.coeffs_nonmon[k] = copy.deepcopy(results[0])
-                self.coeffs_mon[k] = copy.deepcopy(results[1])
-
-        # A faster, albeit less flexible optimization pathway
-        elif self.monotonicity == "separable monotonicity":
-            # Go through all map components
-            for k in K:
-                # Optimize this map component
-                results = self.worker_task_monotone(k=k)
-
-                # Print optimization progress
-                if self.verbose:
-                    string = "\r" + "Progress: |"
-                    string += (k + 1) * "█"
-                    string += (len(K) - k - 1) * " "
-                    string += "|"
-                    print(string, end="\r")
-
-                # Extract and store the optimized coefficients
-                self.coeffs_nonmon[k] = copy.deepcopy(results[0])
-                self.coeffs_mon[k] = copy.deepcopy(results[1])
+            # Extract and store the optimized coefficients
+            self.coeffs_nonmon[k] = copy.deepcopy(results[0])
+            self.coeffs_mon[k] = copy.deepcopy(results[1])
 
         return
-
-    def worker_task_monotone(self, k):
-        """
-        This function provides the optimization task for the k-th map component
-        function.
-
-        Only called when ``self.monotonicity == 'separable monotonicity'``.
-
-        Variables:
-
-            k
-                [integer] : an integer variable defining what map component
-                is being evaluated. Corresponds to a dimension of sample space.
-        """
-        from scipy.optimize import minimize
-
-        # Create local copies of the nonmonotone and monotone basis function's
-        # coefficients.
-        coeffs_nonmon = copy.copy(self.coeffs_nonmon[k])
-        coeffs_mon = copy.copy(self.coeffs_mon[k])
-
-        # ---------------------------------------------------------------------
-        # Define special objective for the monotone function
-        # ---------------------------------------------------------------------
-
-        # If we do not regularize
-        if self.regularization is None:
-            # -----------------------------------------------------------------
-            # No regularization, use standard objective
-            # -----------------------------------------------------------------
-
-            # Make a QR decomposition of the nonmonotone basis function matrix
-            Q, R = np.linalg.qr(self.Psi_nonmon[k], mode="reduced")
-
-            # Calculate the A_sqrt term
-            A_sqrt = self.Psi_mon[k] - np.linalg.multi_dot((Q, Q.T, self.Psi_mon[k]))
-
-            # Get the ensemble size
-            N = self.X.shape[0]
-
-            # Calculate the A term
-            A = np.dot(A_sqrt.T, A_sqrt) / N
-
-            # The optimization objective for the monotone coefficients
-            def fun_mon_objective(coeffs_mon, A, k, all_outputs=True):
-                # -------------------------------------------------------------
-                # Determine objective
-                # -------------------------------------------------------------
-
-                b = self.delta * np.sum(A, axis=-1)
-
-                Ax = np.dot(A, coeffs_mon[:, np.newaxis])
-
-                dS = (
-                    np.dot(self.der_Psi_mon[k], coeffs_mon[:, np.newaxis])
-                    + np.sum(self.der_Psi_mon[k], axis=-1)[:, np.newaxis] * self.delta
-                )
-
-                objective = (
-                    np.dot(coeffs_mon[np.newaxis, :], Ax)[0, 0] / 2
-                    - np.sum(np.log(dS)) / N
-                    + np.inner(coeffs_mon, b)
-                )
-
-                if not all_outputs:
-                    return objective
-
-                # -------------------------------------------------------------
-                # Determine Jacobian
-                # -------------------------------------------------------------
-
-                dPsi_dS = self.der_Psi_mon[k] / dS
-
-                grad = Ax[:, 0] - np.sum(dPsi_dS, axis=0) / N + b
-
-                # -------------------------------------------------------------
-                # Determine Hessian
-                # -------------------------------------------------------------
-
-                hess = A + np.dot(dPsi_dS.T, dPsi_dS) / N
-
-                return objective, grad, hess
-
-        # If we regularize
-        elif self.regularization.lower() == "l2":
-            # -----------------------------------------------------------------
-            # L2 regularization, use alternative objective
-            # -----------------------------------------------------------------
-
-            # Get the ensemble size
-            N = self.X.shape[0]
-
-            # Step 1: Calculate basis for the supporting variable A
-            A = np.linalg.multi_dot(
-                (
-                    np.linalg.inv(
-                        np.dot(self.Psi_nonmon[k].T, self.Psi_nonmon[k])
-                        + self.regularization_lambda
-                        * np.identity(self.Psi_nonmon[k].shape[-1])
-                    ),
-                    self.Psi_nonmon[k].T,
-                    self.Psi_mon[k],
-                )
-            )
-
-            # Step 2: Aggregate
-            A = np.dot(
-                (self.Psi_mon[k] - np.dot(self.Psi_nonmon[k], A)).T,
-                self.Psi_mon[k] - np.dot(self.Psi_nonmon[k], A),
-            ) / 2 + self.regularization_lambda * (
-                np.dot(A.T, A) + np.identity(A.shape[-1])
-            )
-
-            # Create the objective function
-            def fun_mon_objective(coeffs_mon, A, k, all_outputs=True):
-                # -------------------------------------------------------------
-                # Determine objective
-                # -------------------------------------------------------------
-
-                b = self.delta * np.sum(A, axis=-1)
-
-                Ax = np.dot(A, coeffs_mon[:, np.newaxis])
-
-                dS = (
-                    np.dot(self.der_Psi_mon[k], coeffs_mon[:, np.newaxis])
-                    + np.sum(self.der_Psi_mon[k], axis=-1)[:, np.newaxis] * self.delta
-                )
-
-                objective = (
-                    np.dot(coeffs_mon[np.newaxis, :], Ax)[0, 0] / 2
-                    - np.sum(np.log(dS)) / N
-                    + np.inner(coeffs_mon, b)
-                )
-
-                if not all_outputs:
-                    return objective
-
-                # -------------------------------------------------------------
-                # Determine Jacobian
-                # -------------------------------------------------------------
-
-                dPsi_dS = self.der_Psi_mon[k] / dS
-
-                grad = Ax[:, 0] - np.sum(dPsi_dS, axis=0) / N + b
-
-                # -------------------------------------------------------------
-                # Determine Hessian
-                # -------------------------------------------------------------
-
-                hess = A + np.dot(dPsi_dS.T, dPsi_dS) / N
-
-                return objective, grad, hess
-
-        # ---------------------------------------------------------------------
-        # Call the optimization routine
-        # ---------------------------------------------------------------------
-
-        # Specify the optimization bounds
-        bounds = []
-        for idx in range(len(self.optimization_constraints_lb[k])):
-            bounds.append(
-                [
-                    self.optimization_constraints_lb[k][
-                        idx
-                    ],  # -marked- used to have +1E-8
-                    self.optimization_constraints_ub[k][idx],
-                ]
-            )
-
-        # Solve the optimization problem
-        opt = minimize(
-            fun=fun_mon_objective,
-            method="L-BFGS-B",
-            x0=coeffs_mon,
-            jac=True,
-            bounds=bounds,
-            args=(A, k),
-        )
-
-        # Extract the optimal coefficients
-        coeffs_mon = opt.x
-
-        # ---------------------------------------------------------------------
-        # With the monotone coefficients found, calculate the nonmonotone coeffs
-        # ---------------------------------------------------------------------
-
-        if self.regularization is None:
-            # In the standard formulation, use the QR decomposition to calculate
-            # the nonmonotone coefficients
-            coeffs_nonmon = -np.linalg.multi_dot(
-                (np.linalg.inv(R), Q.T, self.Psi_mon[k], coeffs_mon[:, np.newaxis])
-            )[:, 0]
-
-        elif self.regularization.lower() == "l2":
-            coeffs_nonmon = -np.linalg.multi_dot(
-                (
-                    np.linalg.inv(
-                        np.dot(self.Psi_nonmon[k].T, self.Psi_nonmon[k])
-                        + 2
-                        * self.regularization_lambda
-                        * np.identity(self.Psi_nonmon[k].shape[-1])
-                    ),
-                    np.dot(self.Psi_nonmon[k].T, self.Psi_mon[k]),
-                    coeffs_mon[:, np.newaxis],
-                )
-            )[:, 0]
-
-        # Return both optimized coefficients
-        return (coeffs_nonmon, coeffs_mon)
 
     def worker_task(self, k):
         """
@@ -3158,8 +2812,8 @@ class transport_map:
         # Determine the gradients of the polynomial functions
         monotone_part_der = np.dot(Psi_mon, coeffs_mon[:, np.newaxis])[..., 0]
 
-        # Evaluate the logarithm of the recetified monotone part
-        obj = self.rect.logevaluate(monotone_part_der)
+        # Evaluate the logarithm of the rectified monotone part
+        obj = self.monotonicity.rect.logevaluate(monotone_part_der)
 
         # Subtract this from the objective
         objective -= obj
@@ -3289,7 +2943,9 @@ class transport_map:
             # Determine the gradients
             rec_arg = np.dot(Psi_mon_loc, coeffs_mon[:, np.newaxis])[..., 0]
 
-            objective = self.rect.evaluate_dfdc(f=rec_arg, dfdc=Psi_mon_loc)
+            objective = self.monotonicity.rect.evaluate_dfdc(
+                f=rec_arg, dfdc=Psi_mon_loc
+            )
 
             return objective
 
@@ -3299,7 +2955,7 @@ class transport_map:
             a=0,
             b=self.X[:, self.skip_dimensions + k],
             args=(coeffs_mon, k),
-            **self.quadrature_input,
+            **self.monotonicity.quadrature_input,
         )
 
         # If we have non-monotone terms, consider them
@@ -3331,9 +2987,9 @@ class transport_map:
             ..., 0
         ]  # This is dfdk
 
-        numer = self.rect.evaluate_dfdc(f=rec_arg, dfdc=self.Psi_mon[k])
+        numer = self.monotonicity.rect.evaluate_dfdc(f=rec_arg, dfdc=self.Psi_mon[k])
 
-        denom = 1 / (self.rect.evaluate(rec_arg) + self.delta)
+        denom = 1 / (self.monotonicity.rect.evaluate(rec_arg) + self.monotonicity.delta)
 
         term_2 = np.einsum("ij,i->ij", numer, denom)
 
@@ -3455,8 +3111,8 @@ class transport_map:
             # Go through all dimensions
             for k in np.arange(0, self.D, 1):
                 if (
-                    self.alternate_root_finding
-                    and self.monotonicity.lower() == "separable monotonicity"
+                    isinstance(self.monotonicity, SeparableMonotonicity)
+                    and self.monotonicity.alternate_root_finding
                 ):
                     X = self.vectorized_root_search_alternate(Zk=Z[:, k], X=X, k=k)
 
@@ -3484,8 +3140,8 @@ class transport_map:
                 # Go through all dimensions
                 for k in np.arange(0, self.D, 1):
                     if (
-                        self.alternate_root_finding
-                        and self.monotonicity.lower() == "separable monotonicity"
+                        isinstance(self.monotonicity, SeparableMonotonicity)
+                        and self.monotonicity.alternate_root_finding
                     ):
                         X = self.vectorized_root_search_alternate(Zk=Z[:, k], X=X, k=k)
 
@@ -3516,8 +3172,8 @@ class transport_map:
                 # Go through all dimensions
                 for i, k in enumerate(np.arange(skip_dimensions, D, 1)):
                     if (
-                        self.alternate_root_finding
-                        and self.monotonicity.lower() == "separable monotonicity"
+                        isinstance(self.monotonicity, SeparableMonotonicity)
+                        and self.monotonicity.alternate_root_finding
                     ):
                         X = self.vectorized_root_search_alternate(Zk=Z[:, i], X=X, k=k)
 

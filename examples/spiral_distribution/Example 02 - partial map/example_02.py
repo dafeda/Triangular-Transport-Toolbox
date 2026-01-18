@@ -10,7 +10,7 @@ import numpy as np
 import scipy.stats
 
 # Load in the transport map class
-from triangular_transport_toolbox import transport_map
+from triangular_transport_toolbox import IntegratedRectifier, transport_map
 
 # Find the current working directory
 root_directory = os.path.dirname(os.path.realpath(__file__))
@@ -456,15 +456,16 @@ tm = transport_map(
     nonmonotone=nonmonotone,  # Nonmonotone parts of the map component function
     X=X,  # N-by-D matrix of training samples
     polynomial_type="hermite function",  # Re-scaled probabilist's Hermites
-    monotonicity="integrated rectifier",  # Monotonicity method
+    monotonicity=IntegratedRectifier(
+        quadrature_input={
+            "order": 25,
+            "adaptive": False,
+            "threshold": 1e-9,
+            "verbose": False,
+            "increment": 6,
+        }
+    ),
     workers=1,  # Number of workers for parallel optimization
-    quadrature_input={  # Keywords for the Gaussian quadrature
-        "order": 25,
-        "adaptive": False,
-        "threshold": 1e-9,
-        "verbose": False,
-        "increment": 6,
-    },
 )
 
 # Since this map is very complex, optimizing it is a very demanding task, and
