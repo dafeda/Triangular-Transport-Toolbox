@@ -447,6 +447,7 @@ tm = TransportMap(
             "increment": 6,
         }
     ),
+    regularization="l2",
 )
 
 # Since this map is very complex, optimizing it is a very demanding task, and

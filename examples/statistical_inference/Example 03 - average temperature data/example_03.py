@@ -162,6 +162,7 @@ tm = TransportMap(
     X=X,  # N-by-D matrix of training samples
     polynomial_type="hermite function",  # Re-scaled probabilist's Hermites
     monotonicity=SeparableMonotonicity(),
+    regularization="l2",
     verbose=True,  # Shall we print the map's progress?
 )
 
