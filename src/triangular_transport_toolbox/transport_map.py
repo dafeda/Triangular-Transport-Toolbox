@@ -209,12 +209,10 @@ class TransportMap:
         # Construct the monotone and non-monotone functions
         # ---------------------------------------------------------------------
 
-        # The function_constructor yields six variables:
+        # The function_constructor yields the following variables:
         #   - fun_mon               : list of monotone functions
-        #   - fun_mon_strings       : list of monotone function strings
         #   - coeffs_mon            : list of coefficients for monotone function
         #   - fun_nonmon            : list of nonmonotone functions
-        #   - fun_nonmon_strings    : list of nonmonotone function strings
         #   - coeffs_nonmon         : list of coefficients for nonmonotone function
 
         self.function_constructor_alternative()
