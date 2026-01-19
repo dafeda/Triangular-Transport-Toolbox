@@ -10,7 +10,7 @@ import numpy as np
 import scipy.stats
 
 # Load in the transport map class
-from triangular_transport_toolbox import IntegratedRectifier, transport_map
+from triangular_transport_toolbox import IntegratedRectifier, TransportMap
 
 # Find the current working directory
 root_directory = os.path.dirname(os.path.realpath(__file__))
@@ -433,7 +433,7 @@ for k in range(2):
 # samples (X) obtained, we can start creating the transport map object.
 
 # Create the transport map object tm
-tm = transport_map(
+tm = TransportMap(
     monotone=monotone,  # Monotone parts of the map component function
     nonmonotone=nonmonotone,  # Nonmonotone parts of the map component function
     X=X,  # N-by-D matrix of training samples

@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import scipy.stats
 
-from triangular_transport_toolbox import SeparableMonotonicity, transport_map
+from triangular_transport_toolbox import SeparableMonotonicity, TransportMap
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from utils import lorenz_dynamics, rk4
@@ -172,7 +172,7 @@ else:  # Map is nonlinear
 
 # Let's create the transport map object. We initiate it with dummy random
 # variables for now.
-tm = transport_map(
+tm = TransportMap(
     monotone=monotone_filter,
     nonmonotone=nonmonotone_filter,
     X=np.random.uniform(size=(N, 1 + D)),  # Dummy input
@@ -347,7 +347,7 @@ else:  # Nonlinear smoother
     monotone_BWS = [[[3]], [[4]], [[5]]]
 
 # Parameterize the transport map
-tm = transport_map(
+tm = TransportMap(
     monotone=monotone_BWS,
     nonmonotone=nonmonotone_BWS,
     X=np.random.uniform(size=(N, int(2 * D))),

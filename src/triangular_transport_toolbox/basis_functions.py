@@ -40,7 +40,7 @@ import numpy as np
 import scipy.special
 
 if TYPE_CHECKING:
-    from .transport_map import transport_map
+    from .transport_map import TransportMap
 
 
 # =============================================================================
@@ -57,7 +57,7 @@ class BasisFunction(ABC):
     """
 
     @abstractmethod
-    def evaluate(self, x: np.ndarray, tm: transport_map) -> np.ndarray:
+    def evaluate(self, x: np.ndarray, tm: TransportMap) -> np.ndarray:
         """
         Evaluate the basis function at points x.
 
@@ -66,7 +66,7 @@ class BasisFunction(ABC):
         x : ndarray
             Input samples with shape (N, D) or (..., D) for batch processing,
             where D is dimensionality.
-        tm : transport_map
+        tm : TransportMap
             The transport map instance (for accessing parameters like
             special term locations).
 
@@ -78,7 +78,7 @@ class BasisFunction(ABC):
         pass
 
     @abstractmethod
-    def derivative(self, x: np.ndarray, tm: transport_map, k: int) -> np.ndarray:
+    def derivative(self, x: np.ndarray, tm: TransportMap, k: int) -> np.ndarray:
         """
         Evaluate the derivative of the basis function with respect to x_k.
 
@@ -86,7 +86,7 @@ class BasisFunction(ABC):
         ----------
         x : ndarray
             Input samples, shape (N, D) or (..., D) for batch processing.
-        tm : transport_map
+        tm : TransportMap
             The transport map instance.
         k : int
             Index of the variable to differentiate with respect to.
@@ -98,7 +98,7 @@ class BasisFunction(ABC):
         """
         pass
 
-    def __call__(self, x: np.ndarray, tm: transport_map) -> np.ndarray:
+    def __call__(self, x: np.ndarray, tm: TransportMap) -> np.ndarray:
         """Evaluate the basis function (delegates to `evaluate`)."""
         return self.evaluate(x, tm)
 
@@ -116,11 +116,11 @@ class ConstantBasis(BasisFunction):
     Used for the constant/intercept term in map components.
     """
 
-    def evaluate(self, x: np.ndarray, tm: transport_map) -> np.ndarray:
+    def evaluate(self, x: np.ndarray, tm: TransportMap) -> np.ndarray:
         """Return ones with shape (N,)."""
         return np.ones(x.shape[:-1])
 
-    def derivative(self, x: np.ndarray, tm: transport_map, k: int) -> np.ndarray:
+    def derivative(self, x: np.ndarray, tm: TransportMap, k: int) -> np.ndarray:
         """Derivative of a constant is zero."""
         return np.zeros(x.shape[:-1])
 
@@ -167,11 +167,11 @@ class PolynomialBasis(BasisFunction):
         self._der_coeffs = self.polyfunc_der(self.coefficients)
         self._der_poly = self.polyfunc(self._der_coeffs)
 
-    def evaluate(self, x: np.ndarray, tm: transport_map) -> np.ndarray:
+    def evaluate(self, x: np.ndarray, tm: TransportMap) -> np.ndarray:
         """Evaluate the polynomial at x[:, dimension]."""
         return self._poly(x[..., self.dimension])
 
-    def derivative(self, x: np.ndarray, tm: transport_map, k: int) -> np.ndarray:
+    def derivative(self, x: np.ndarray, tm: TransportMap, k: int) -> np.ndarray:
         """
         Derivative with respect to x_k.
 
@@ -231,12 +231,12 @@ class HermiteFunctionBasis(BasisFunction):
         self._der_coeffs = self.polyfunc_der(self.coefficients)
         self._der_poly = self.polyfunc(self._der_coeffs)
 
-    def evaluate(self, x: np.ndarray, tm: transport_map) -> np.ndarray:
+    def evaluate(self, x: np.ndarray, tm: TransportMap) -> np.ndarray:
         """Evaluate polynomial(x) * exp(-x^2/4)."""
         xi = x[..., self.dimension]
         return self._poly(xi) * np.exp(-(xi**2) / 4)
 
-    def derivative(self, x: np.ndarray, tm: transport_map, k: int) -> np.ndarray:
+    def derivative(self, x: np.ndarray, tm: TransportMap, k: int) -> np.ndarray:
         """
         Derivative: d/dx[f(x) * exp(-x^2/4)] = (f'(x) - x*f(x)/2) * exp(-x^2/4).
         """
@@ -284,7 +284,7 @@ class SpecialTermBasis(BasisFunction):
     term_index: int
     is_cross_term: bool = False
 
-    def _get_mu_and_scale(self, tm: transport_map) -> tuple[float, float]:
+    def _get_mu_and_scale(self, tm: TransportMap) -> tuple[float, float]:
         """Retrieve the center (mu) and scale from transport map."""
         st_dict = tm.special_terms[self.component_index]
 
@@ -309,7 +309,7 @@ class LeftEdgeTerm(SpecialTermBasis):
     Formula: ((x - μ)(1 - erf((x - μ)/(√2 σ))) - σ√(2/π) exp(-((x-μ)/(√2 σ))²)) / 2
     """
 
-    def evaluate(self, x: np.ndarray, tm: transport_map) -> np.ndarray:
+    def evaluate(self, x: np.ndarray, tm: TransportMap) -> np.ndarray:
         """Evaluate the left edge term."""
         mu, scale = self._get_mu_and_scale(tm)
         xi = x[..., self.dimension]
@@ -321,7 +321,7 @@ class LeftEdgeTerm(SpecialTermBasis):
             (xi - mu) * (1 - erf_z) - scale * np.sqrt(2 / np.pi) * np.exp(-(z**2))
         ) / 2
 
-    def derivative(self, x: np.ndarray, tm: transport_map, k: int) -> np.ndarray:
+    def derivative(self, x: np.ndarray, tm: TransportMap, k: int) -> np.ndarray:
         """Derivative: (1 - erf((x - μ)/(√2 σ))) / 2."""
         if k != self.dimension:
             return np.zeros(x.shape[:-1])
@@ -344,7 +344,7 @@ class RightEdgeTerm(SpecialTermBasis):
     Formula: ((x - μ)(1 + erf((x - μ)/(√2 σ))) + σ√(2/π) exp(-((x-μ)/(√2 σ))²)) / 2
     """
 
-    def evaluate(self, x: np.ndarray, tm: transport_map) -> np.ndarray:
+    def evaluate(self, x: np.ndarray, tm: TransportMap) -> np.ndarray:
         """Evaluate the right edge term."""
         mu, scale = self._get_mu_and_scale(tm)
         xi = x[..., self.dimension]
@@ -356,7 +356,7 @@ class RightEdgeTerm(SpecialTermBasis):
             (xi - mu) * (1 + erf_z) + scale * np.sqrt(2 / np.pi) * np.exp(-(z**2))
         ) / 2
 
-    def derivative(self, x: np.ndarray, tm: transport_map, k: int) -> np.ndarray:
+    def derivative(self, x: np.ndarray, tm: TransportMap, k: int) -> np.ndarray:
         """Derivative: (1 + erf((x - μ)/(√2 σ))) / 2."""
         if k != self.dimension:
             return np.zeros(x.shape[:-1])
@@ -376,7 +376,7 @@ class RadialBasisFunction(SpecialTermBasis):
     Formula: exp(-((x - μ)/σ)²/2) / (σ √(2π))
     """
 
-    def evaluate(self, x: np.ndarray, tm: transport_map) -> np.ndarray:
+    def evaluate(self, x: np.ndarray, tm: TransportMap) -> np.ndarray:
         """Evaluate the RBF."""
         mu, scale = self._get_mu_and_scale(tm)
         xi = x[..., self.dimension]
@@ -384,7 +384,7 @@ class RadialBasisFunction(SpecialTermBasis):
         z = (xi - mu) / scale
         return np.exp(-(z**2) / 2) / (scale * np.sqrt(2 * np.pi))
 
-    def derivative(self, x: np.ndarray, tm: transport_map, k: int) -> np.ndarray:
+    def derivative(self, x: np.ndarray, tm: TransportMap, k: int) -> np.ndarray:
         """Derivative: -(x - μ) / (√(2π) σ³) exp(-((x-μ)/σ)²/2)."""
         if k != self.dimension:
             return np.zeros(x.shape[:-1])
@@ -404,7 +404,7 @@ class IntegratedRBF(SpecialTermBasis):
     Formula: (1 + erf((x - μ)/(√2 σ))) / 2
     """
 
-    def evaluate(self, x: np.ndarray, tm: transport_map) -> np.ndarray:
+    def evaluate(self, x: np.ndarray, tm: TransportMap) -> np.ndarray:
         """Evaluate the integrated RBF."""
         mu, scale = self._get_mu_and_scale(tm)
         xi = x[..., self.dimension]
@@ -412,7 +412,7 @@ class IntegratedRBF(SpecialTermBasis):
         z = (xi - mu) / (np.sqrt(2) * scale)
         return (1 + scipy.special.erf(z)) / 2
 
-    def derivative(self, x: np.ndarray, tm: transport_map, k: int) -> np.ndarray:
+    def derivative(self, x: np.ndarray, tm: TransportMap, k: int) -> np.ndarray:
         """Derivative: 1/(√(2π) σ) exp(-(x - μ)²/(2σ²))."""
         if k != self.dimension:
             return np.zeros(x.shape[:-1])
@@ -447,14 +447,14 @@ class ProductBasis(BasisFunction):
 
     factors: list[BasisFunction] = field(default_factory=list)
 
-    def evaluate(self, x: np.ndarray, tm: transport_map) -> np.ndarray:
+    def evaluate(self, x: np.ndarray, tm: TransportMap) -> np.ndarray:
         """Evaluate the product of all factors."""
         result = np.ones(x.shape[:-1])
         for factor in self.factors:
             result = result * factor.evaluate(x, tm)
         return result
 
-    def derivative(self, x: np.ndarray, tm: transport_map, k: int) -> np.ndarray:
+    def derivative(self, x: np.ndarray, tm: TransportMap, k: int) -> np.ndarray:
         """
         Derivative using the product rule.
 
@@ -509,7 +509,7 @@ class LinearizedBasis(BasisFunction):
     dimension: int
     increment: float = 1e-6
 
-    def evaluate(self, x: np.ndarray, tm: transport_map) -> np.ndarray:
+    def evaluate(self, x: np.ndarray, tm: TransportMap) -> np.ndarray:
         """Evaluate with linearization in tails."""
         if tm.linearization is None:
             return self.inner.evaluate(x, tm)
@@ -549,7 +549,7 @@ class LinearizedBasis(BasisFunction):
 
         return result
 
-    def derivative(self, x: np.ndarray, tm: transport_map, k: int) -> np.ndarray:
+    def derivative(self, x: np.ndarray, tm: TransportMap, k: int) -> np.ndarray:
         """Derivative with linearization."""
         if tm.linearization is None:
             return self.inner.derivative(x, tm, k)
@@ -602,7 +602,7 @@ class ComponentFunction:
     def __init__(self, basis_functions: list[BasisFunction]):
         self.basis_functions = basis_functions
 
-    def __call__(self, x: np.ndarray, tm: transport_map) -> np.ndarray:
+    def __call__(self, x: np.ndarray, tm: TransportMap) -> np.ndarray:
         """
         Evaluate all basis functions.
 
@@ -617,7 +617,7 @@ class ComponentFunction:
         results = [bf.evaluate(x, tm) for bf in self.basis_functions]
         return np.stack(results, axis=-1)
 
-    def derivative(self, x: np.ndarray, tm: transport_map, k: int) -> np.ndarray:
+    def derivative(self, x: np.ndarray, tm: TransportMap, k: int) -> np.ndarray:
         """
         Evaluate derivatives of all basis functions with respect to x_k.
 
@@ -643,11 +643,11 @@ class _NullComponentFunction:
     Used for empty nonmonotone components.
     """
 
-    def __call__(self, x: np.ndarray, tm: transport_map) -> None:
+    def __call__(self, x: np.ndarray, tm: TransportMap) -> None:
         """Return None for empty components."""
         return None
 
-    def derivative(self, x: np.ndarray, tm: transport_map, k: int) -> None:
+    def derivative(self, x: np.ndarray, tm: TransportMap, k: int) -> None:
         """Return None for empty components."""
         return None
 
@@ -676,7 +676,7 @@ class _DerivativeComponentFunction:
         self.component_function = component_function
         self.derivative_dimension = derivative_dimension
 
-    def __call__(self, x: np.ndarray, tm: transport_map) -> np.ndarray:
+    def __call__(self, x: np.ndarray, tm: TransportMap) -> np.ndarray:
         """
         Evaluate the derivative of the component function.
 
@@ -687,7 +687,7 @@ class _DerivativeComponentFunction:
         """
         return self.component_function.derivative(x, tm, self.derivative_dimension)
 
-    def derivative(self, x: np.ndarray, tm: transport_map, k: int) -> np.ndarray:
+    def derivative(self, x: np.ndarray, tm: TransportMap, k: int) -> np.ndarray:
         """
         Second derivative (not currently implemented).
 
@@ -710,7 +710,7 @@ class _DerivativeComponentFunction:
 
 def parse_term(
     term_spec,
-    tm: transport_map,
+    tm: TransportMap,
     component_k: int,
     st_counter: dict[int, int],
     apply_linearization: bool = False,
@@ -733,7 +733,7 @@ def parse_term(
         - "RET 0" : Right edge term in x_0
         - "RBF 0" : Radial basis function in x_0
         - "iRBF 0" : Integrated RBF in x_0
-    tm : transport_map
+    tm : TransportMap
         The transport map instance.
     component_k : int
         The component index (k value for this map component).
@@ -844,7 +844,7 @@ def parse_term(
 
 def build_component_function(
     terms: list,
-    tm: transport_map,
+    tm: TransportMap,
     component_k: int,
     apply_linearization: bool = False,
 ) -> ComponentFunction:
@@ -855,7 +855,7 @@ def build_component_function(
     ----------
     terms : list
         List of term specifications (same format as monotone[k] or nonmonotone[k]).
-    tm : transport_map
+    tm : TransportMap
         The transport map instance.
     component_k : int
         The component index.

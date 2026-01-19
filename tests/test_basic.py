@@ -12,7 +12,7 @@ from triangular_transport_toolbox.monotonicity import (
     IntegratedRectifier,
     SeparableMonotonicity,
 )
-from triangular_transport_toolbox.transport_map import transport_map
+from triangular_transport_toolbox.transport_map import TransportMap
 
 
 class TestBasicMapConstruction:
@@ -29,7 +29,7 @@ class TestBasicMapConstruction:
         monotone = [[[]], [[0], [1]]]
         nonmonotone = [[[]], [[]]]
 
-        tm = transport_map(
+        tm = TransportMap(
             X=simple_data,
             monotone=monotone,
             nonmonotone=nonmonotone,
@@ -48,7 +48,7 @@ class TestBasicMapConstruction:
         monotone = [[[]], [[0], [1]]]
         nonmonotone = [[[]], [[]]]
 
-        tm = transport_map(
+        tm = TransportMap(
             X=simple_data,
             monotone=monotone,
             nonmonotone=nonmonotone,
@@ -67,7 +67,7 @@ class TestBasicMapConstruction:
         monotone = [[[]], [[0], [1]]]
         nonmonotone = [[[]], [[]]]
 
-        tm = transport_map(
+        tm = TransportMap(
             X=simple_data,
             monotone=monotone,
             nonmonotone=nonmonotone,
@@ -85,7 +85,7 @@ class TestBasicMapConstruction:
         monotone = [[[]], [[0], [1]]]
         nonmonotone = [[[]], [[]]]
 
-        tm = transport_map(
+        tm = TransportMap(
             X=simple_data,
             monotone=monotone,
             nonmonotone=nonmonotone,
@@ -116,7 +116,7 @@ class TestBasisFunctions:
         monotone = [[[]], [[0], [1]]]
         nonmonotone = [[[]], [[]]]
 
-        tm = transport_map(
+        tm = TransportMap(
             X=simple_data,
             monotone=monotone,
             nonmonotone=nonmonotone,
@@ -159,7 +159,7 @@ class TestInputValidation:
         X = np.random.randn(100, 2)
 
         with pytest.raises(TypeError, match="monotonicity must be"):
-            transport_map(
+            TransportMap(
                 X=X,
                 monotone=[[[]], [[0], [1]]],
                 nonmonotone=[[[]], [[]]],
@@ -177,7 +177,7 @@ class TestInputValidation:
         # is called, not during __init__. Test that the map requires
         # valid inputs.
         with pytest.raises((ValueError, TypeError)):
-            tm = transport_map(
+            tm = TransportMap(
                 X=X,
                 monotone=None,
                 nonmonotone=None,

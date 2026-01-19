@@ -38,7 +38,7 @@ class MonotonicityStrategy(ABC):
 
         Parameters
         ----------
-        tm : transport_map
+        tm : TransportMap
             The transport map instance.
         x : ndarray
             Input samples, shape (N, D).
@@ -61,7 +61,7 @@ class MonotonicityStrategy(ABC):
 
         Parameters
         ----------
-        tm : transport_map
+        tm : TransportMap
             The transport map instance.
         k : int
             Index of the map component function.
@@ -80,7 +80,7 @@ class MonotonicityStrategy(ABC):
 
         Parameters
         ----------
-        tm : transport_map
+        tm : TransportMap
             The transport map instance.
         k : int
             Index of the map component function.
@@ -102,7 +102,7 @@ class MonotonicityStrategy(ABC):
 
         Parameters
         ----------
-        tm : transport_map
+        tm : TransportMap
             The transport map instance.
         """
         pass
@@ -157,12 +157,12 @@ class IntegratedRectifier(MonotonicityStrategy):
 
     Examples
     --------
-    >>> from triangular_transport_toolbox import transport_map, IntegratedRectifier
+    >>> from triangular_transport_toolbox import TransportMap, IntegratedRectifier
     >>> strategy = IntegratedRectifier(
     ...     rectifier_type="softplus",
     ...     quadrature_input={"order": 50}
     ... )
-    >>> tm = transport_map(samples, strategy, monotone=monotone,
+    >>> tm = TransportMap(samples, strategy, monotone=monotone,
     ...                    nonmonotone=nonmonotone, monotonicity=strategy)
     """
 
@@ -324,9 +324,9 @@ class SeparableMonotonicity(MonotonicityStrategy):
 
     Examples
     --------
-    >>> from triangular_transport_toolbox import transport_map, SeparableMonotonicity
+    >>> from triangular_transport_toolbox import TransportMap, SeparableMonotonicity
     >>> strategy = SeparableMonotonicity(alternate_root_finding=True)
-    >>> tm = transport_map(samples, strategy, monotone=monotone,
+    >>> tm = TransportMap(samples, strategy, monotone=monotone,
     ...                    nonmonotone=nonmonotone, monotonicity=strategy)
     """
 
@@ -500,7 +500,7 @@ class SeparableMonotonicity(MonotonicityStrategy):
         self.optimization_constraints_lb = []
         self.optimization_constraints_ub = []
 
-        # Delegate to transport_map which has all the complex logic
+        # Delegate to TransportMap which has all the complex logic
         tm.build_derivative_functions_for_separable()
 
     def supports_cross_terms_adaptation(self) -> bool:

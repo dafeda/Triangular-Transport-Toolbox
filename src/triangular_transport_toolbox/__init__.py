@@ -10,11 +10,11 @@ from triangular_transport_toolbox.monotonicity import (
     SeparableMonotonicity,
 )
 from triangular_transport_toolbox.rectifier import Rectifier
-from triangular_transport_toolbox.transport_map import transport_map
+from triangular_transport_toolbox.transport_map import TransportMap
 
 __version__ = "1.0.0"
 __all__ = [
-    "transport_map",
+    "TransportMap",
     "Rectifier",
     "MonotonicityStrategy",
     "IntegratedRectifier",

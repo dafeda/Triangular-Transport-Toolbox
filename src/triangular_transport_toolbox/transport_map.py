@@ -18,7 +18,7 @@ from .monotonicity import (
 )
 
 
-class transport_map:
+class TransportMap:
     def __init__(
         self,
         X,

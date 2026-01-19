@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import scipy.stats
 
-from triangular_transport_toolbox import SeparableMonotonicity, transport_map
+from triangular_transport_toolbox import SeparableMonotonicity, TransportMap
 
 # =============================================================================
 # Step 1: Train the map
@@ -101,7 +101,7 @@ for k in range(2):
                 monotone[-1].append("iRBF " + str(k))
 
 # Parameterize the transport map
-tm = transport_map(
+tm = TransportMap(
     monotone=monotone,
     nonmonotone=nonmonotone,
     X=copy.copy(X),  # Training ensemble
@@ -275,7 +275,7 @@ plt.savefig("pullback_density.png", dpi=600, bbox_inches="tight")
 # =============================================================================
 
 # Parameterize the transport map
-tm = transport_map(
+tm = TransportMap(
     monotone=monotone[1:],
     nonmonotone=nonmonotone[1:],
     X=copy.copy(X),  # Training ensemble
