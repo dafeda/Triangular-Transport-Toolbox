@@ -139,7 +139,6 @@ class TransportMap:
         # Should the toolbox print the outputs to the console?
         self.verbose = verbose
 
-        # Are we using regularization?
         self.regularization = regularization
         self.regularization_lambda = regularization_lambda
 
@@ -578,12 +577,6 @@ class TransportMap:
                 "The flag hermite_function_threshold_mode must be "
                 + "'composite' or 'individual'. Currently, it is defined as "
                 + str(self.hermite_function_threshold_mode)
-            )
-
-        if self.regularization is None:
-            raise ValueError(
-                "'regularization' is required and cannot be None. "
-                + "Must be either 'l1' or 'l2'."
             )
 
         if not isinstance(self.regularization, str):
