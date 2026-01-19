@@ -197,7 +197,7 @@ class TransportMap:
         # If we are not adapting the map
         if not self.adaptation:
             # Map adaptation is not active
-            self.D = len(monotone)
+            self.D = len(self.monotone)
             self.skip_dimensions = X.shape[-1] - self.D
 
         # If we are adapting the map
