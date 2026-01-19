@@ -107,7 +107,6 @@ tm = TransportMap(
     X=copy.copy(X),  # Training ensemble
     polynomial_type="hermite function",  # Hermite functions for stability
     monotonicity=SeparableMonotonicity(),  # Required for cross-terms
-    workers=1,  # Number of workers for parallel optimization
 )
 
 # Optimize the map
@@ -281,7 +280,6 @@ tm = TransportMap(
     X=copy.copy(X),  # Training ensemble
     polynomial_type="hermite function",  # Hermite functions for stability
     monotonicity=SeparableMonotonicity(),  # Required for cross-terms
-    workers=1,  # Number of workers for parallel optimization
 )
 
 # Optimize the map

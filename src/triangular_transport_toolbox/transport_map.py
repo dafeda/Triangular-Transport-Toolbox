@@ -26,7 +26,6 @@ class TransportMap:
         monotone=None,
         nonmonotone=None,
         polynomial_type="hermite function",
-        workers=1,
         ST_scale_factor=1.0,
         ST_scale_mode="dynamic",
         coeffs_init=0.0,
@@ -78,10 +77,6 @@ class TransportMap:
                 [MonotonicityStrategy] : strategy object which specifies how the
                 transport map ensures monotonicity in the last dimensions.
                 Must be an IntegratedRectifier or SeparableMonotonicity instance.
-
-            workers - [default = 1]
-                [integer] : DEPRECATED. Multiprocessing support has been
-                temporarily removed for refactoring. This parameter is ignored.
 
             ST_scale_factor - [default = 1.0]
                 [float] : a float which scales the width of special terms used
@@ -144,10 +139,6 @@ class TransportMap:
         # of the map component functions.
         self.monotone = copy.deepcopy(monotone)
         self.nonmonotone = copy.deepcopy(nonmonotone)
-
-        # Multiprocessing has been temporarily removed for refactoring
-        # The workers parameter is kept for backwards compatibility but ignored
-        self.workers = 1  # Force single-threaded execution
 
         # Set up the monotonicity strategy
         if not isinstance(monotonicity, MonotonicityStrategy):

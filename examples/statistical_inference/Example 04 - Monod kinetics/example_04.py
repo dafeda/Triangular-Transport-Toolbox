@@ -219,8 +219,7 @@ tm = TransportMap(
     polynomial_type="hermite function",  # Re-scaled probabilist's Hermites
     monotonicity=SeparableMonotonicity(),
     verbose=True,  # Shall we print the map's progress?
-    workers=1,
-)  # Number of workers for the parallel optimization.)
+)
 
 # This map is cheap to optimize.
 tm.optimize()

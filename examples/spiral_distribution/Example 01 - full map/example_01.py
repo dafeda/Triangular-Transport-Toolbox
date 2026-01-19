@@ -447,7 +447,6 @@ tm = TransportMap(
             "increment": 6,
         }
     ),
-    workers=1,  # Number of workers for parallel optimization
 )
 
 # Since this map is very complex, optimizing it is a very demanding task, and
