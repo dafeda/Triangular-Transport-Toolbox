@@ -191,7 +191,7 @@ class TransportMap:
             self.skip_dimensions = X.shape[-1] - self.D
 
         # If we are adapting the map
-        elif self.adaptation:
+        else:
             # Map adaptation is active. Create a linear transport marginal map.
 
             # Define lower map component blocks
@@ -254,16 +254,6 @@ class TransportMap:
             raise ValueError(
                 "It is only possible to use adaptation_map_type = 'cross-terms' with "
                 + "IntegratedRectifier monotonicity strategy."
-            )
-
-        if (
-            self.hermite_function_threshold_mode != "composite"
-            and self.hermite_function_threshold_mode != "individual"
-        ):
-            raise ValueError(
-                "The flag hermite_function_threshold_mode must be "
-                + "'composite' or 'individual'. Currently, it is defined as "
-                + str(self.hermite_function_threshold_mode)
             )
 
         if not isinstance(self.regularization, str):
