@@ -3,6 +3,7 @@ Triangular transport map toolbox v1.0.0
 """
 
 import copy
+from typing import Literal
 
 import numpy as np
 
@@ -23,6 +24,7 @@ class TransportMap:
         self,
         X,
         monotonicity: MonotonicityStrategy,
+        regularization: Literal["l1", "l2"],
         monotone=None,
         nonmonotone=None,
         polynomial_type="hermite function",
@@ -31,7 +33,6 @@ class TransportMap:
         linearization=None,
         linearization_specified_as_quantiles=True,
         linearization_increment=1e-6,
-        regularization=None,
         regularization_lambda=0.1,
         adaptation=False,
         adaptation_map_type="cross-terms",
@@ -104,13 +105,14 @@ class TransportMap:
 
             Regularization ----------------------------------------------------
 
-            regularization - [default = None]
-                [string or None] : keyword which specifies if regularization is
-                used, and if so, what kind of regularization ('L1' or 'L2').
+            regularization - [required]
+                [string] : keyword which specifies what kind of regularization
+                to use. Must be either 'l1' or 'l2'.
+                Regularization cannot be disabled.
 
             regularization_lambda - [default = 0.1]
                 [float] : float which specifies the weight for the map coeff-
-                icient regularization. Only used if regularization is not None.
+                icient regularization.
 
         """
         # ---------------------------------------------------------------------
@@ -578,26 +580,35 @@ class TransportMap:
                 + str(self.hermite_function_threshold_mode)
             )
 
-        if self.regularization is not None:
-            if isinstance(self.monotonicity, SeparableMonotonicity):
-                if self.regularization.lower() not in ["l2"]:
-                    raise ValueError(
-                        "When using SeparableMonotonicity, "
-                        + "'regularization' must either be None "
-                        + "(deactivated) or 'L2' (L2 regularization). Currently, it "
-                        + "is defined as "
-                        + str(self.regularization)
-                    )
-            else:
-                if self.regularization.lower() not in ["l1", "l2"]:
-                    raise ValueError(
-                        "When using IntegratedRectifier, "
-                        + "'regularization' must either be None "
-                        + "(deactivated), 'L1' (L1 regularization) or "
-                        + "'L2' (L2 regularization). Currently, it "
-                        + "is defined as "
-                        + str(self.regularization)
-                    )
+        if self.regularization is None:
+            raise ValueError(
+                "'regularization' is required and cannot be None. "
+                + "Must be either 'l1' or 'l2'."
+            )
+
+        if not isinstance(self.regularization, str):
+            raise TypeError(
+                "'regularization' must be a string ('l1' or 'l2'). "
+                + f"Currently, it is of type {type(self.regularization).__name__}"
+            )
+
+        if isinstance(self.monotonicity, SeparableMonotonicity):
+            if self.regularization != "l2":
+                raise ValueError(
+                    "When using SeparableMonotonicity, "
+                    + "'regularization' must be 'l2' (L2 regularization)."
+                    + " Currently, it is defined as "
+                    + str(self.regularization)
+                )
+        else:
+            if self.regularization not in ["l1", "l2"]:
+                raise ValueError(
+                    "When using IntegratedRectifier, "
+                    + "'regularization' must be 'l1' (L1 regularization) or "
+                    + "'l2' (L2 regularization). Currently, it "
+                    + "is defined as "
+                    + str(self.regularization)
+                )
 
     def reset(self, X):
         """
@@ -1514,7 +1525,7 @@ class TransportMap:
                             "Must be either scalar or list."
                         )
 
-                elif self.regularization.lower() == "l2":
+                elif self.regularization == "l2":
                     # Regularization_lambda is identical for all parameters
                     if np.isscalar(self.regularization_lambda):
                         # Add l2 regularization for all coefficients
@@ -1539,7 +1550,7 @@ class TransportMap:
                         )
 
                 else:
-                    raise ValueError("regularization_type must be either 'l1' or 'l2'.")
+                    raise ValueError("regularization must be either 'l1' or 'l2'.")
 
             else:
                 raise ValueError(
@@ -1692,7 +1703,7 @@ class TransportMap:
 
                     objective += term
 
-                elif self.regularization.lower() == "l2":
+                elif self.regularization == "l2":
                     # Regularization_lambda is identical for all parameters
                     if np.isscalar(self.regularization_lambda):
                         # Add l2 regularization for all coefficients
@@ -1717,7 +1728,7 @@ class TransportMap:
                     objective += term
 
                 else:
-                    raise ValueError("regularization_type must be either 'l1' or 'l2'.")
+                    raise ValueError("regularization must be either 'l1' or 'l2'.")
 
             else:
                 raise ValueError(

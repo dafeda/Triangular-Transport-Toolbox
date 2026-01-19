@@ -34,6 +34,7 @@ class TestBasicMapConstruction:
             monotone=monotone,
             nonmonotone=nonmonotone,
             monotonicity=SeparableMonotonicity(),
+            regularization="l2",
             verbose=False,
         )
 
@@ -53,6 +54,7 @@ class TestBasicMapConstruction:
             monotone=monotone,
             nonmonotone=nonmonotone,
             monotonicity=SeparableMonotonicity(),
+            regularization="l2",
             verbose=False,
         )
 
@@ -72,6 +74,7 @@ class TestBasicMapConstruction:
             monotone=monotone,
             nonmonotone=nonmonotone,
             monotonicity=SeparableMonotonicity(),
+            regularization="l2",
             verbose=False,
         )
 
@@ -90,6 +93,7 @@ class TestBasicMapConstruction:
             monotone=monotone,
             nonmonotone=nonmonotone,
             monotonicity=SeparableMonotonicity(),
+            regularization="l2",
             verbose=False,
         )
 
@@ -121,6 +125,7 @@ class TestBasisFunctions:
             monotone=monotone,
             nonmonotone=nonmonotone,
             monotonicity=SeparableMonotonicity(),
+            regularization="l2",
             verbose=False,
         )
 
@@ -164,6 +169,7 @@ class TestInputValidation:
                 monotone=[[[]], [[0], [1]]],
                 nonmonotone=[[[]], [[]]],
                 monotonicity="invalid",
+                regularization="l2",
                 verbose=False,
             )
 
@@ -182,6 +188,7 @@ class TestInputValidation:
                 monotone=None,
                 nonmonotone=None,
                 monotonicity=SeparableMonotonicity(),
+                regularization="l2",
                 adaptation=False,
                 verbose=False,
             )
