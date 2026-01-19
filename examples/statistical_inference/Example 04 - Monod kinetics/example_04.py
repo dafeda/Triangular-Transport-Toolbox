@@ -33,7 +33,7 @@ plt.close("all")
 # our observations.
 
 # To start off, let us load the data
-text_file = open("model_monod.dat")
+text_file = open(os.path.join(root_directory, "model_monod.dat"))
 lines = text_file.readlines()
 text_file.close()
 
