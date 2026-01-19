@@ -27,7 +27,6 @@ class TransportMap:
         nonmonotone=None,
         polynomial_type="hermite function",
         coeffs_init=0.0,
-        root_search_truncation=True,
         verbose=True,
         linearization=None,
         linearization_specified_as_quantiles=True,
@@ -79,11 +78,6 @@ class TransportMap:
             coeffs_init - [default = 0.]
                 [float] : value used to initialize the coefficients at the
                 start of the map optimization.
-
-            root_search_truncation - [default = True]
-                [boolean] : flag which determines whether the root search
-                truncates outliers, which serves to prevent numerical overflow
-                for flat map tails.
 
             verbose - [default = True]
                 [boolean] : a True/False flag which determines whether the map
@@ -139,10 +133,6 @@ class TransportMap:
 
         # Initial value for the coefficients
         self.coeffs_init = coeffs_init
-
-        # If set to True, prevents extrapolation during root finding. Use of
-        # this option is not recommended.
-        self.root_search_truncation = root_search_truncation
 
         # Should the toolbox print the outputs to the console?
         self.verbose = verbose
@@ -2113,11 +2103,6 @@ class TransportMap:
 
         # Find the target values
         target = -offset + Zk
-
-        # prevent undue extrapolation
-        if self.root_search_truncation:
-            target[target < np.min(out)] = np.min(out)
-            target[target > np.max(out)] = np.max(out)
 
         # Find the target root
         result = itp(target)
