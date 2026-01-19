@@ -130,25 +130,15 @@ class TransportMap:
         self.polynomial_type = polynomial_type.lower()
 
         # Determine the derivative and polynomial terms depending on the chosen type
-        if (
-            self.polynomial_type == "standard"
-            or self.polynomial_type == "polynomial"
-            or self.polynomial_type == "power series"
-        ):
+        if self.polynomial_type in ("standard", "polynomial", "power series"):
             self.polyfunc = np.polynomial.polynomial.Polynomial
             self.polyfunc_der = np.polynomial.polynomial.polyder
             self.polyfunc_str = "np.polynomial.Polynomial"
-        elif (
-            self.polynomial_type == "hermite"
-            or self.polynomial_type == "physicist's hermite"
-        ):
+        elif self.polynomial_type in ("hermite", "physicist's hermite"):
             self.polyfunc = np.polynomial.hermite.Hermite
             self.polyfunc_der = np.polynomial.hermite.hermder
             self.polyfunc_str = "np.polynomial.Hermite"
-        elif (
-            self.polynomial_type == "hermite_e"
-            or self.polynomial_type == "probabilist's hermite"
-        ):
+        elif self.polynomial_type in ("hermite_e", "probabilist's hermite"):
             self.polyfunc = np.polynomial.hermite_e.HermiteE
             self.polyfunc_der = np.polynomial.hermite_e.hermeder
             self.polyfunc_str = "np.polynomial.HermiteE"
