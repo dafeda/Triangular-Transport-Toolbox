@@ -26,6 +26,7 @@ where = ["src"]
 dev = [
     "pytest>=8.3.5",
     "ruff>=0.8.0",
+    "pre-commit>=3.5.0",
 ]
 
 [tool.ruff]
