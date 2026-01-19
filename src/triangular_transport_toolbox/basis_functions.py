@@ -31,7 +31,6 @@ ComponentFunction : callable
 
 from __future__ import annotations
 
-import copy
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Callable
@@ -483,104 +482,6 @@ class ProductBasis(BasisFunction):
 
 
 # =============================================================================
-# Linearized Basis (wrapper for tail linearization)
-# =============================================================================
-
-
-@dataclass
-class LinearizedBasis(BasisFunction):
-    """
-    Wrapper that applies linearization in the tails.
-
-    For values outside the linearization bounds, the function is
-    linearly extrapolated using the value and derivative at the boundary.
-
-    Parameters
-    ----------
-    inner : BasisFunction
-        The basis function to wrap.
-    dimension : int
-        The dimension to linearize.
-    increment : float
-        Small increment for finite difference at boundary.
-    """
-
-    inner: BasisFunction
-    dimension: int
-    increment: float = 1e-6
-
-    def evaluate(self, x: np.ndarray, tm: TransportMap) -> np.ndarray:
-        """Evaluate with linearization in tails."""
-        if tm.linearization is None:
-            return self.inner.evaluate(x, tm)
-
-        x_work = copy.copy(x)
-        thresholds = tm.linearization_threshold
-
-        # Find points outside bounds
-        below = x_work[..., self.dimension] < thresholds[self.dimension, 0]
-        above = x_work[..., self.dimension] > thresholds[self.dimension, 1]
-
-        # Compute displacement from boundary
-        vec = np.zeros(x.shape[:-1])
-        vec[below] = x_work[below, self.dimension] - thresholds[self.dimension, 0]
-        vec[above] = x_work[above, self.dimension] - thresholds[self.dimension, 1]
-
-        # Truncate x to boundaries
-        x_trc = copy.copy(x_work)
-        x_trc[below, self.dimension] = thresholds[self.dimension, 0]
-        x_trc[above, self.dimension] = thresholds[self.dimension, 1]
-
-        # Evaluate at truncated points
-        val_trc = self.inner.evaluate(x_trc, tm)
-
-        # Create extrapolated points for derivative estimation
-        x_ext = copy.copy(x_trc)
-        x_ext[below, self.dimension] += self.increment
-        x_ext[above, self.dimension] -= self.increment
-
-        val_ext = self.inner.evaluate(x_ext, tm)
-
-        # Linear extrapolation: f(x) ≈ f(x_trc) + f'(x_trc) * (x - x_trc)
-        # Using finite difference for f': (f(x_ext) - f(x_trc)) / increment
-        slope = (val_ext - val_trc) / self.increment
-
-        result = val_trc + slope * vec
-
-        return result
-
-    def derivative(self, x: np.ndarray, tm: TransportMap, k: int) -> np.ndarray:
-        """Derivative with linearization."""
-        if tm.linearization is None:
-            return self.inner.derivative(x, tm, k)
-
-        if k != self.dimension:
-            # For other dimensions, just truncate x and evaluate
-            x_work = copy.copy(x)
-            thresholds = tm.linearization_threshold
-
-            below = x_work[..., self.dimension] < thresholds[self.dimension, 0]
-            above = x_work[..., self.dimension] > thresholds[self.dimension, 1]
-
-            x_work[below, self.dimension] = thresholds[self.dimension, 0]
-            x_work[above, self.dimension] = thresholds[self.dimension, 1]
-
-            return self.inner.derivative(x_work, tm, k)
-
-        # For the linearized dimension, derivative is constant in tails
-        x_work = copy.copy(x)
-        thresholds = tm.linearization_threshold
-
-        below = x_work[..., self.dimension] < thresholds[self.dimension, 0]
-        above = x_work[..., self.dimension] > thresholds[self.dimension, 1]
-
-        x_trc = copy.copy(x_work)
-        x_trc[below, self.dimension] = thresholds[self.dimension, 0]
-        x_trc[above, self.dimension] = thresholds[self.dimension, 1]
-
-        return self.inner.derivative(x_trc, tm, k)
-
-
 # =============================================================================
 # Component Function (collection of basis functions)
 # =============================================================================
@@ -713,7 +614,6 @@ def parse_term(
     tm: TransportMap,
     component_k: int,
     st_counter: dict[int, int],
-    apply_linearization: bool = False,
 ) -> BasisFunction:
     """
     Parse a term specification into a BasisFunction.
@@ -739,8 +639,6 @@ def parse_term(
         The component index (k value for this map component).
     st_counter : dict[int, int]
         Counter for special terms per dimension (modified in place).
-    apply_linearization : bool
-        Whether to wrap polynomial terms with linearization.
 
     Returns
     -------
@@ -793,7 +691,6 @@ def parse_term(
         hermite_function = any(
             item == "HF" for item in term_spec if isinstance(item, str)
         )
-        linearize = any(item == "LIN" for item in term_spec if isinstance(item, str))
 
         # Remove string modifiers
         dimensions = [item for item in term_spec if not isinstance(item, str)]
@@ -823,14 +720,6 @@ def parse_term(
                     polyfunc_der=tm.polyfunc_der,
                 )
 
-            # Apply linearization if requested
-            if linearize and apply_linearization:
-                bf = LinearizedBasis(
-                    inner=bf,
-                    dimension=int(dim),
-                    increment=tm.linearization_increment,
-                )
-
             factors.append(bf)
 
         # Return single factor or product
@@ -846,7 +735,6 @@ def build_component_function(
     terms: list,
     tm: TransportMap,
     component_k: int,
-    apply_linearization: bool = False,
 ) -> ComponentFunction:
     """
     Build a ComponentFunction from a list of term specifications.
@@ -859,8 +747,6 @@ def build_component_function(
         The transport map instance.
     component_k : int
         The component index.
-    apply_linearization : bool
-        Whether to apply linearization to polynomial terms.
 
     Returns
     -------
@@ -880,7 +766,6 @@ def build_component_function(
             tm=tm,
             component_k=component_k,
             st_counter=st_counter,
-            apply_linearization=apply_linearization,
         )
         basis_functions.append(bf)
 
