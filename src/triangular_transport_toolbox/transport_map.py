@@ -24,7 +24,7 @@ class TransportMap:
         self,
         X,
         monotonicity: MonotonicityStrategy,
-        regularization: Literal["l1", "l2"],
+        regularization: Literal["l1", "l2"] | None = None,
         monotone=None,
         nonmonotone=None,
         polynomial_type="hermite function",
