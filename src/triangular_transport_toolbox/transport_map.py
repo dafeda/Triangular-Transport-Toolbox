@@ -30,9 +30,6 @@ class TransportMap:
         polynomial_type="hermite function",
         coeffs_init=0.0,
         verbose=True,
-        linearization=None,
-        linearization_specified_as_quantiles=True,
-        linearization_increment=1e-6,
         regularization_lambda=0.1,
         adaptation=False,
         adaptation_map_type="cross-terms",
@@ -85,24 +82,6 @@ class TransportMap:
                 prints updates or not. Set to 'False' if running on a cluster
                 to avoid recording excessive output logs.
 
-            Linearization -----------------------------------------------------
-
-            linearization - [default = None]
-                [float or None] : float which specifies boundary values used
-                to linearize the map components in the tails. It's role is
-                specifies by linearization_specified_as_quantiles.
-
-            linearization_specified_as_quantiles - [default = True]
-                [boolean] : flag which specifies whether the linearization
-                thresholds are specifies as quantiles (True) or absolute values
-                (False). If True, boundaries are placed at linearization and
-                1-linearization, if False, at linearization and -linearization.
-                Only used if linearization is not None.
-
-            linearization_increment - [default = 1E-6]
-                [float] : increment used for the linearization of the map
-                component functions. Only used if linearization is not None.
-
             Regularization ----------------------------------------------------
 
             regularization - [required]
@@ -141,11 +120,6 @@ class TransportMap:
 
         self.regularization = regularization
         self.regularization_lambda = regularization_lambda
-
-        # Are we using linearization?
-        self.linearization = linearization
-        self.linearization_specified_as_quantiles = linearization_specified_as_quantiles
-        self.linearization_increment = linearization_increment
 
         # ---------------------------------------------------------------------
         # Read and assign the polynomial type
@@ -742,7 +716,6 @@ class TransportMap:
                 terms=self.monotone[k],
                 tm=self,
                 component_k=component_k,
-                apply_linearization=(self.linearization is not None),
             )
 
             if not partial_construction:
@@ -760,7 +733,6 @@ class TransportMap:
                     terms=self.nonmonotone[k],
                     tm=self,
                     component_k=component_k,
-                    apply_linearization=(self.linearization is not None),
                 )
             else:
                 # Create a function that returns None
@@ -1044,32 +1016,6 @@ class TransportMap:
             self.special_terms[k] = place_special_terms(
                 self, dictionary=copy.deepcopy(self.special_terms[k])
             )
-
-        # ---------------------------------------------------------------------
-        # Prepare linearization thresholds, if linearization is used
-        # ---------------------------------------------------------------------
-
-        # Set the linearization bounds
-        if self.linearization is not None:
-            self.linearization_threshold = np.zeros((self.X.shape[-1], 2))
-
-            # If the linearization value specifies quantiles, calculate the
-            # linearization thresholds
-            if self.linearization_specified_as_quantiles:
-                for k in range(self.X.shape[-1]):
-                    self.linearization_threshold[k, 0] = np.quantile(
-                        self.X[:, k], q=self.linearization
-                    )
-                    self.linearization_threshold[k, 1] = np.quantile(
-                        self.X[:, k], q=1 - self.linearization
-                    )
-
-            # Otherwise, directly prescribe them
-            else:
-                for k in range(self.X.shape[-1]):
-                    # Overwrite with static term -marked-
-                    self.linearization_threshold[k, 0] = -self.linearization
-                    self.linearization_threshold[k, 1] = +self.linearization
 
         return
 
