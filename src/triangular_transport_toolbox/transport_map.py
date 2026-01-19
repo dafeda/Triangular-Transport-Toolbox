@@ -127,44 +127,44 @@ class TransportMap:
 
         # What type of polynomials are we using for the specification of the
         # basis functions in the map component functions?
-        self.polynomial_type = polynomial_type
+        self.polynomial_type = polynomial_type.lower()
 
         # Determine the derivative and polynomial terms depending on the chosen type
         if (
-            polynomial_type.lower() == "standard"
-            or polynomial_type.lower() == "polynomial"
-            or polynomial_type.lower() == "power series"
+            self.polynomial_type == "standard"
+            or self.polynomial_type == "polynomial"
+            or self.polynomial_type == "power series"
         ):
             self.polyfunc = np.polynomial.polynomial.Polynomial
             self.polyfunc_der = np.polynomial.polynomial.polyder
             self.polyfunc_str = "np.polynomial.Polynomial"
         elif (
-            polynomial_type.lower() == "hermite"
-            or polynomial_type.lower() == "physicist's hermite"
+            self.polynomial_type == "hermite"
+            or self.polynomial_type == "physicist's hermite"
         ):
             self.polyfunc = np.polynomial.hermite.Hermite
             self.polyfunc_der = np.polynomial.hermite.hermder
             self.polyfunc_str = "np.polynomial.Hermite"
         elif (
-            polynomial_type.lower() == "hermite_e"
-            or polynomial_type.lower() == "probabilist's hermite"
+            self.polynomial_type == "hermite_e"
+            or self.polynomial_type == "probabilist's hermite"
         ):
             self.polyfunc = np.polynomial.hermite_e.HermiteE
             self.polyfunc_der = np.polynomial.hermite_e.hermeder
             self.polyfunc_str = "np.polynomial.HermiteE"
-        elif polynomial_type.lower() == "chebyshev":
+        elif self.polynomial_type == "chebyshev":
             self.polyfunc = np.polynomial.chebyshev.Chebyshev
             self.polyfunc_der = np.polynomial.chebyshev.chebder
             self.polyfunc_str = "np.polynomial.Chebyshev"
-        elif polynomial_type.lower() == "laguerre":
+        elif self.polynomial_type == "laguerre":
             self.polyfunc = np.polynomial.laguerre.Laguerre
             self.polyfunc_der = np.polynomial.laguerre.lagder
             self.polyfunc_str = "np.polynomial.Laguerre"
-        elif polynomial_type.lower() == "legendre":
+        elif self.polynomial_type == "legendre":
             self.polyfunc = np.polynomial.legendre.Legendre
             self.polyfunc_der = np.polynomial.legendre.legder
             self.polyfunc_str = "np.polynomial.Legendre"
-        elif polynomial_type.lower() == "hermite function":
+        elif self.polynomial_type == "hermite function":
             # Unify this polynomial string, so we can use it as a flag
             self.polynomial_type = "hermite function"
             self.polyfunc = np.polynomial.hermite_e.HermiteE
