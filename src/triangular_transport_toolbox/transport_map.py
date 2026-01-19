@@ -26,8 +26,6 @@ class TransportMap:
         monotone=None,
         nonmonotone=None,
         polynomial_type="hermite function",
-        ST_scale_factor=1.0,
-        ST_scale_mode="dynamic",
         coeffs_init=0.0,
         root_search_truncation=True,
         verbose=True,
@@ -77,16 +75,6 @@ class TransportMap:
                 [MonotonicityStrategy] : strategy object which specifies how the
                 transport map ensures monotonicity in the last dimensions.
                 Must be an IntegratedRectifier or SeparableMonotonicity instance.
-
-            ST_scale_factor - [default = 1.0]
-                [float] : a float which scales the width of special terms used
-                in the map components, such as 'RBF 0', 'iRBF 0', 'LET 0', or
-                'RET 0'.
-
-            ST_scale_mode - [default = 'dynamic']
-                [string] : keyword which defines whether the width of special
-                term scale factors is determined based on neighbouring special
-                terms ('dynamic') or fixed as ST_scale_factor ('static').
 
             coeffs_init - [default = 0.]
                 [float] : value used to initialize the coefficients at the
@@ -148,13 +136,6 @@ class TransportMap:
                 f"got {type(monotonicity).__name__}"
             )
         self.monotonicity = monotonicity
-
-        # Parameters for special terms optionally used in the specification of
-        # the basis functions.
-        self.ST_scale_factor = ST_scale_factor
-        self.ST_scale_mode = ST_scale_mode
-        if self.ST_scale_mode not in ["dynamic", "static"]:
-            raise ValueError("'ST_scale_mode' must be either 'dynamic' or 'static'.")
 
         # Initial value for the coefficients
         self.coeffs_init = coeffs_init
@@ -597,9 +578,6 @@ class TransportMap:
                 + "IntegratedRectifier monotonicity strategy."
             )
 
-        if self.ST_scale_mode not in ["dynamic", "static"]:
-            raise ValueError("'ST_scale_mode' must be either 'dynamic' or 'static'.")
-
         if (
             self.hermite_function_threshold_mode != "composite"
             and self.hermite_function_threshold_mode != "individual"
@@ -998,11 +976,7 @@ class TransportMap:
                     )
 
                     # Determine the scales
-                    if self.ST_scale_mode == "dynamic":  # Dynamic scales
-                        dictionary[d]["scales"] = np.asarray([self.ST_scale_factor / 2])
-
-                    elif self.ST_scale_mode == "static":  # Static scales
-                        dictionary[d]["scales"] = np.asarray([self.ST_scale_factor])
+                    dictionary[d]["scales"] = np.asarray([0.5])
 
                 # ---------------------------------------------------------
                 # Multiple special terms
@@ -1022,43 +996,31 @@ class TransportMap:
                         np.quantile(a=self.X[:, d], q=quantiles)
                     )
 
-                    # Determine the scales
-                    if self.ST_scale_mode == "dynamic":
-                        # Otherwise, determine the scale based on relative differences
-                        for i in range(dictionary[d]["counter"]):
-                            # Left edge-case: base is half distance to next basis
-                            if i == 0:
-                                scales[i] = (
-                                    dictionary[d]["centers"][1]
-                                    - dictionary[d]["centers"][0]
-                                ) * self.ST_scale_factor
+                    # Determine the scales based on relative differences
+                    for i in range(dictionary[d]["counter"]):
+                        # Left edge-case: base is half distance to next basis
+                        if i == 0:
+                            scales[i] = (
+                                dictionary[d]["centers"][1]
+                                - dictionary[d]["centers"][0]
+                            )
 
-                            # Right edge-case: base is half distance to previous basis
-                            elif i == dictionary[d]["counter"] - 1:
-                                scales[i] = (
-                                    dictionary[d]["centers"][i]
-                                    - dictionary[d]["centers"][i - 1]
-                                ) * self.ST_scale_factor
+                        # Right edge-case: base is half distance to previous basis
+                        elif i == dictionary[d]["counter"] - 1:
+                            scales[i] = (
+                                dictionary[d]["centers"][i]
+                                - dictionary[d]["centers"][i - 1]
+                            )
 
-                            # Otherwise: base is average distance to neighbours
-                            else:
-                                scales[i] = (
-                                    (
-                                        dictionary[d]["centers"][i + 1]
-                                        - dictionary[d]["centers"][i - 1]
-                                    )
-                                    / 2
-                                    * self.ST_scale_factor
-                                )
+                        # Otherwise: base is average distance to neighbours
+                        else:
+                            scales[i] = (
+                                dictionary[d]["centers"][i + 1]
+                                - dictionary[d]["centers"][i - 1]
+                            ) / 2
 
-                        # Copy the scales into the array
-                        dictionary[d]["scales"] = copy.copy(scales)
-
-                    elif self.ST_scale_mode == "static":
-                        # Copy the scales into the array
-                        dictionary[d]["scales"] = (
-                            copy.copy(scales) + self.ST_scale_factor
-                        )
+                    # Copy the scales into the array
+                    dictionary[d]["scales"] = copy.copy(scales)
 
             return dictionary
 
